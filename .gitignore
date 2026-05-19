@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Node.js
+node_modules/
+dist/
+.vite/
+
+# SQLite databases & logs (runtime data - khong commit len git)
+db/*.db
+db/*_wal.json
+
+# Results (generated files)
+results/*.png
+results/*.json
+
+# Temp files
+temp_*.txt
+*.db
+
