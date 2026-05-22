@@ -14,12 +14,16 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import sqlite3
+import hashlib
+import json
 from datetime import datetime
+from marshmallow import ValidationError
 from .models import CADModelSchema, GeometrySchema
 
 _cad_schema = CADModelSchema()
 _cad_schema_many = CADModelSchema(many=True)
 _geo_schema = GeometrySchema()
+_SITE_PORT_MAP = {"Site-A": 5001, "Site-B": 5002, "Site-C": 5003}
 
 
 def create_app(site):
@@ -31,14 +35,169 @@ def create_app(site):
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR)
 
+    def _json_payload():
+        payload = request.get_json(silent=True)
+        return payload if isinstance(payload, dict) else {}
+
+    def _request_hash(payload):
+        canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
     @app.after_request
     def after_request_log(response):
         print(f"  [{site.site_id}] {request.method} {request.path} - {response.status_code}")
         return response
 
+    @app.before_request
+    def reject_when_network_disconnected():
+        """Gia lap node disconnect: chi chan request lien-site, van cho local write."""
+        is_inter_site = (
+            request.path.startswith("/replication/incoming")
+            or bool(request.headers.get("X-Replication-Source"))
+        )
+        if not site.network_online and is_inter_site:
+            return jsonify({
+                "success": False,
+                "error": "NODE_DISCONNECTED",
+                "message": f"{site.site_id} dang bi ngat ket noi lien-site; local transaction van hoat dong.",
+                "site_id": site.site_id,
+                "network_status": site.network_state,
+            }), 503
+
     @app.route("/health", methods=["GET"])
     def health():
-        return jsonify({"status": "ok", "site_id": site.site_id, "strategy": site.strategy})
+        site.push_site_health()
+        return jsonify({
+            "status": "ok" if site.network_online else "disconnected",
+            "site_id": site.site_id,
+            "strategy": site.strategy,
+            "network_online": site.network_online,
+            "mode": site.network_state["mode"],
+            "outbox": site.replication_outbox.summary(),
+        })
+
+    @app.route("/network/status", methods=["GET"])
+    def network_status():
+        return jsonify(site.network_state)
+
+    @app.route("/network/disconnect", methods=["POST"])
+    def network_disconnect():
+        return jsonify({
+            "success": True,
+            "message": f"{site.site_id} da bi ngat ket noi mang.",
+            "network_status": site.disconnect_network(),
+        })
+
+    @app.route("/network/reconnect", methods=["POST"])
+    def network_reconnect():
+        network = site.reconnect_network()
+        pending_ops = site.replication_outbox.pending()
+        replay_results = [_attempt_replication_delivery(op) for op in pending_ops]
+        delivered = sum(1 for result in replay_results if result["delivered"])
+        return jsonify({
+            "success": True,
+            "message": f"{site.site_id} da ket noi lai mang.",
+            "network_status": network,
+            "auto_replay": {
+                "attempted": len(replay_results),
+                "delivered": delivered,
+                "still_pending": len(replay_results) - delivered,
+                "results": replay_results,
+            },
+        })
+
+    def _attempt_replication_delivery(op, failure_mode=None):
+        """
+        Deliver 1 outbox operation sang target.
+        Idempotent theo op_id: neu source timeout sau khi target commit,
+        replay lai cung op_id se duoc target ACK duplicate thay vi ghi sai.
+        """
+        if not op:
+            return {
+                "delivered": False,
+                "message": "Outbox operation khong ton tai.",
+                "outbox_entry": None,
+            }
+        if op.get("status") == "ACKED":
+            return {
+                "delivered": True,
+                "message": "Operation da ACK truoc do.",
+                "outbox_entry": op,
+            }
+        if not site.network_online:
+            failed = site.replication_outbox.mark_failed(op["op_id"], "SOURCE_SITE_OFFLINE")
+            return {
+                "delivered": False,
+                "message": "Source site dang local-only; operation giu trong outbox.",
+                "error": "SOURCE_SITE_OFFLINE",
+                "outbox_entry": failed,
+            }
+
+        target_site = op["target_site"]
+        target_port = _SITE_PORT_MAP.get(target_site)
+        if not target_port:
+            failed = site.replication_outbox.mark_failed(op["op_id"], "INVALID_TARGET_SITE")
+            return {
+                "delivered": False,
+                "message": "Target site khong hop le.",
+                "error": "INVALID_TARGET_SITE",
+                "outbox_entry": failed,
+            }
+
+        import requests
+        try:
+            response = requests.post(
+                f"http://127.0.0.1:{target_port}/replication/incoming",
+                json={
+                    "op_id": op["op_id"],
+                    "source_site": site.site_id,
+                    "target_site": target_site,
+                    "model": op["payload"],
+                    "failure_mode": failure_mode,
+                },
+                headers={
+                    "X-Replication-Source": site.site_id,
+                    "X-Replication-Op-Id": op["op_id"],
+                },
+                timeout=2,
+            )
+            try:
+                target_payload = response.json()
+            except ValueError:
+                target_payload = {"raw_response": response.text}
+
+            if response.status_code in (200, 201):
+                acked = site.replication_outbox.mark_delivered(op["op_id"])
+                return {
+                    "delivered": True,
+                    "message": "Replicate thanh cong va da ACK.",
+                    "target_status_code": response.status_code,
+                    "target_response": target_payload,
+                    "outbox_entry": acked,
+                }
+
+            failed = site.replication_outbox.mark_failed(
+                op["op_id"],
+                f"HTTP {response.status_code}: {response.text}",
+            )
+            return {
+                "delivered": False,
+                "message": "Target chua ACK; operation giu trong outbox de retry.",
+                "error": "TARGET_NOT_ACKED",
+                "target_status_code": response.status_code,
+                "target_response": target_payload,
+                "outbox_entry": failed,
+            }
+        except Exception as exc:
+            failed = site.replication_outbox.mark_failed(op["op_id"], exc)
+            return {
+                "delivered": False,
+                "message": "Network timeout/disconnect; operation giu trong outbox de retry.",
+                "error": "NODE_DISCONNECT_OR_TIMEOUT",
+                "target_site": target_site,
+                "detail": str(exc),
+                "outbox_entry": failed,
+            }
 
     @app.route("/models", methods=["GET"])
     def list_models():
@@ -54,14 +213,67 @@ def create_app(site):
 
     @app.route("/models", methods=["POST"])
     def create_model():
-        data = request.json
-        geometry = _geo_schema.load(data["geometry"])
-        model = site.create_model(data["part_id"], geometry)
+        data = _json_payload()
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "INVALID_JSON_PAYLOAD",
+                "message": "Body JSON khong hop le hoac dang rong.",
+            }), 400
+
+        is_import = "model" in data or {"oid", "version", "branch"}.intersection(data.keys())
+        replicated = bool(data.get("replicated")) or bool(request.headers.get("X-Replication-Source"))
+        candidate = data.get("model", data)
+        incoming_part_id = candidate.get("part_id") if isinstance(candidate, dict) else None
+
+        if incoming_part_id and not replicated and not site.accepts_local_part(incoming_part_id):
+            expected_prefix = site.expected_fragment_prefix()
+            expected_category = site.expected_fragment_category()
+            return jsonify({
+                "success": False,
+                "error": "FRAGMENTATION_CONSTRAINT_VIOLATION",
+                "message": (
+                    f"{site.site_id} chi quan ly fragment {expected_category} "
+                    f"voi part_id prefix {expected_prefix}-."
+                ),
+                "site_id": site.site_id,
+                "part_id": incoming_part_id,
+                "expected_prefix": expected_prefix,
+                "expected_category": expected_category,
+                "hint": "Dung /replicate de sao chep object hop le giua cac site.",
+            }), 400
+
+        try:
+            if "model" in data:
+                model = _cad_schema.load(data["model"])
+                model = site.import_model(model, source_site=request.headers.get("X-Replication-Source"))
+            elif is_import:
+                model = _cad_schema.load(data)
+                model = site.import_model(model, source_site=request.headers.get("X-Replication-Source"))
+            else:
+                part_id = data.get("part_id")
+                geometry_payload = data.get("geometry")
+                if not part_id or geometry_payload is None:
+                    return jsonify({
+                        "success": False,
+                        "error": "MISSING_REQUIRED_FIELDS",
+                        "message": "Can co day du 'part_id' va 'geometry' khi tao model local.",
+                    }), 400
+                geometry = _geo_schema.load(geometry_payload)
+                model = site.create_model(part_id, geometry)
+        except ValidationError as err:
+            return jsonify({
+                "success": False,
+                "error": "SCHEMA_VALIDATION_ERROR",
+                "details": err.messages,
+            }), 400
+
         return jsonify(_cad_schema.dump(model)), 201
 
     @app.route("/models/<part_id>/checkout", methods=["POST"])
     def checkout(part_id):
-        user = request.json.get("user", "anonymous")
+        payload = _json_payload()
+        user = payload.get("user", "anonymous")
         model = site.checkout(part_id, user)
         if model:
             return jsonify(_cad_schema.dump(model))
@@ -69,12 +281,19 @@ def create_app(site):
 
     @app.route("/models/<part_id>/checkin", methods=["POST"])
     def checkin(part_id):
-        data = request.json
+        data = _json_payload()
         user = data.get("user", "anonymous")
         model_data = data.get("model")
         if not model_data:
             return jsonify({"success": False, "message": "Thieu du lieu model"}), 400
-        model = _cad_schema.load(model_data)
+        try:
+            model = _cad_schema.load(model_data)
+        except ValidationError as err:
+            return jsonify({
+                "success": False,
+                "message": "Model payload khong hop le",
+                "details": err.messages,
+            }), 400
 
         # Lay version truoc checkin de so sanh
         current_before = site.snapshot_store.get_latest(part_id)
@@ -103,13 +322,13 @@ def create_app(site):
 
         # Detect conflict type
         is_conflict = "XUNG DOT" in message or "conflict" in message.lower()
-        conflict_strategy = site.strategy if is_conflict else None
+        conflict_strategy = "branching" if is_conflict else None
 
         # Get all branches for this part
         all_versions = site.snapshot_store.get_all_versions(part_id)
         branches = list(set(m.branch for m in all_versions))
 
-        return jsonify({
+        response_body = {
             "success": success,
             "message": message,
             "part_id": part_id,
@@ -124,7 +343,15 @@ def create_app(site):
             "all_branches": branches,
             "total_versions": len(all_versions),
             "wal_entry_count": site.wal_state["total_entries"],
-        })
+        }
+        if success:
+            return jsonify(response_body), 200
+        lowered = (message or "").lower()
+        if "chua checkout" in lowered:
+            return jsonify(response_body), 409
+        if "khong khop" in lowered or "thieu" in lowered:
+            return jsonify(response_body), 400
+        return jsonify(response_body), 500
 
     @app.route("/models/<part_id>", methods=["GET"])
     def get_model(part_id):
@@ -142,9 +369,54 @@ def create_app(site):
         models = site.snapshot_store.get_all_versions(part_id)
         return jsonify(_cad_schema_many.dump(models))
 
+    @app.route("/models/<part_id>/version-graph", methods=["GET"])
+    def get_version_graph(part_id):
+        return jsonify(site.get_version_graph(part_id))
+
     @app.route("/storage/compare", methods=["GET"])
     def storage_compare():
         return jsonify(site.get_storage_comparison())
+
+    @app.route("/rehydrate", methods=["POST"])
+    def rehydrate_object():
+        data = _json_payload()
+        oid = data.get("oid")
+        target_version = data.get("target_version")
+        branch = data.get("branch", "main")
+        if not oid or target_version is None:
+            return jsonify({
+                "success": False,
+                "error": "MISSING_REQUIRED_FIELDS",
+                "message": "Can co 'oid' va 'target_version'.",
+            }), 400
+        try:
+            target_version = int(target_version)
+        except Exception:
+            return jsonify({
+                "success": False,
+                "error": "INVALID_TARGET_VERSION",
+            }), 400
+
+        model, meta = site.delta_store.rehydrate(oid, target_version, branch=branch)
+        if not model:
+            return jsonify({
+                "success": False,
+                **meta,
+            }), 404
+
+        snapshot_model = site.snapshot_store.get_exact(meta["part_id"], target_version, branch) or site.snapshot_store.get(meta["part_id"], target_version, branch)
+        snapshot_checksum = snapshot_model.checksum() if snapshot_model else None
+        rehydrated_checksum = model.checksum()
+
+        return jsonify({
+            "success": True,
+            "site_id": site.site_id,
+            "model": _cad_schema.dump(model),
+            "metrics": meta,
+            "rehydrated_checksum": rehydrated_checksum,
+            "snapshot_checksum": snapshot_checksum,
+            "checksum_match": bool(snapshot_checksum and snapshot_checksum == rehydrated_checksum),
+        })
 
     @app.route("/fragmentation", methods=["GET"])
     def fragmentation_info():
@@ -170,29 +442,250 @@ def create_app(site):
 
     @app.route("/replicate", methods=["POST"])
     def replicate():
-        data = request.json
+        data = _json_payload()
         part_id = data.get("part_id")
         target_site = data.get("target_site")
+        if not part_id or not target_site:
+            return jsonify({
+                "success": False,
+                "error": "MISSING_REQUIRED_FIELDS",
+                "message": "Can co 'part_id' va 'target_site'.",
+            }), 400
+        if target_site == site.site_id:
+            return jsonify({
+                "success": False,
+                "error": "INVALID_TARGET_SITE",
+                "message": "Khong duoc replicate vao chinh site nguon.",
+            }), 400
         model = site.snapshot_store.get_latest(part_id)
         if not model:
             return jsonify({"error": "Khong tim thay model"}), 404
+        if target_site not in _SITE_PORT_MAP:
+            return jsonify({"success": False, "error": "Target site khong hop le"}), 400
 
-        port_map = {"Site-A": 5001, "Site-B": 5002, "Site-C": 5003}
-        target_port = port_map.get(target_site)
-        if not target_port:
-            return jsonify({"error": "Target site khong hop le"}), 400
+        op = site.replication_outbox.enqueue_model(target_site, model)
+        failure_mode = data.get("failure_mode")
+        if not failure_mode and data.get("simulate_timeout_after_commit"):
+            failure_mode = "after_commit_ack_lost"
+        result = _attempt_replication_delivery(
+            op,
+            failure_mode=failure_mode,
+        )
+        status_code = 200 if result["delivered"] else 202
+        return jsonify({
+            "success": result["delivered"],
+            "queued": not result["delivered"],
+            "message": result["message"],
+            "part_id": part_id,
+            "target_site": target_site,
+            "failure_mode": failure_mode,
+            "op_id": op["op_id"],
+            "outbox_entry": result["outbox_entry"],
+            "delivery": result,
+        }), status_code
 
-        import requests
+    @app.route("/replication/incoming", methods=["POST"])
+    def replication_incoming():
+        data = _json_payload()
+        model_data = data.get("model")
+        if not model_data:
+            return jsonify({"success": False, "error": "Thieu model"}), 400
+
+        source_site = data.get("source_site") or request.headers.get("X-Replication-Source")
+        op_id = data.get("op_id") or request.headers.get("X-Replication-Op-Id")
+        if not source_site or not op_id:
+            return jsonify({
+                "success": False,
+                "error": "MISSING_REPLICATION_METADATA",
+                "message": "Replication incoming yeu cau source_site va op_id.",
+            }), 400
+        if source_site not in _SITE_PORT_MAP:
+            return jsonify({
+                "success": False,
+                "error": "INVALID_SOURCE_SITE",
+                "message": "source_site khong hop le.",
+            }), 400
+        if source_site == site.site_id:
+            return jsonify({
+                "success": False,
+                "error": "INVALID_SOURCE_SITE",
+                "message": "source_site khong duoc trung voi target site.",
+            }), 400
         try:
-            resp = requests.post(f"http://127.0.0.1:{target_port}/models", json={
-                "part_id": part_id,
-                "geometry": _geo_schema.dump(model.geometry)
-            }, timeout=2)
-            if resp.status_code == 201:
-                return jsonify({"success": True, "message": "Replicate thanh cong"})
-            return jsonify({"error": "That bai tai site dich"}), 500
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            incoming = _cad_schema.load(model_data)
+        except ValidationError as err:
+            return jsonify({
+                "success": False,
+                "error": "SCHEMA_VALIDATION_ERROR",
+                "details": err.messages,
+            }), 400
+
+        failure_mode = data.get("failure_mode")
+        if failure_mode not in (None, "", "before_commit", "after_commit_ack_lost"):
+            return jsonify({
+                "success": False,
+                "error": "INVALID_FAILURE_MODE",
+                "message": "failure_mode hop le: before_commit | after_commit_ack_lost",
+            }), 400
+
+        idempotency_payload = {
+            "source_site": source_site,
+            "target_site": site.site_id,
+            "model": incoming.to_dict(),
+        }
+        request_hash = _request_hash(idempotency_payload)
+        inbox_entry, claimed, _ = site.replication_inbox.claim_or_get(
+            op_id=op_id,
+            request_payload=idempotency_payload,
+            source_site=source_site,
+            model=incoming,
+        )
+
+        if not claimed:
+            if inbox_entry["request_hash"] != request_hash:
+                return jsonify({
+                    "success": False,
+                    "error": "IDEMPOTENCY_HASH_CONFLICT",
+                    "message": "Cung op_id nhung payload khac. Tu choi de tranh duplicate side-effect.",
+                    "op_id": op_id,
+                    "stored_request_hash": inbox_entry["request_hash"],
+                    "incoming_request_hash": request_hash,
+                }), 409
+
+            if inbox_entry["stored_response_json"] is not None:
+                stored = dict(inbox_entry["stored_response_json"])
+                stored["idempotent_duplicate"] = True
+                stored["op_id"] = op_id
+                stored["source_site"] = source_site
+                stored["target_site"] = site.site_id
+                return jsonify(stored), 200
+
+            return jsonify({
+                "success": False,
+                "error": "IDEMPOTENCY_IN_PROGRESS",
+                "message": "Operation dang duoc xu ly, vui long retry.",
+                "op_id": op_id,
+            }), 409
+
+        if failure_mode == "before_commit":
+            response_body = {
+                "success": False,
+                "message": "SIMULATED_BEFORE_COMMIT_FAILURE: target chua ghi DB.",
+                "op_id": op_id,
+                "source_site": source_site,
+                "target_site": site.site_id,
+                "failure_mode": "before_commit",
+            }
+            site.replication_inbox.delete(op_id)
+            return jsonify(response_body), 503
+
+        requested = {
+            "version": incoming.version,
+            "branch": incoming.branch or "main",
+            "checksum": incoming.checksum(),
+            "oid": incoming.oid,
+        }
+
+        existing = site.snapshot_store.get_exact(incoming.part_id, incoming.version, incoming.branch or "main")
+        idempotent_duplicate = bool(
+            existing
+            and existing.oid == incoming.oid
+            and existing.checksum() == incoming.checksum()
+        )
+
+        imported = site.import_model(incoming, source_site=source_site)
+        conflict_resolved = (
+            imported.version != requested["version"]
+            or (imported.branch or "main") != requested["branch"]
+        )
+        response_body = {
+            "success": True,
+            "message": (
+                "Replication duplicate da ACK idempotent"
+                if idempotent_duplicate
+                else "Replication imported"
+            ),
+            "op_id": op_id,
+            "source_site": source_site,
+            "target_site": site.site_id,
+            "idempotent_duplicate": idempotent_duplicate,
+            "conflict_resolved": conflict_resolved,
+            "requested": requested,
+            "stored": {
+                "part_id": imported.part_id,
+                "oid": imported.oid,
+                "version": imported.version,
+                "branch": imported.branch,
+                "checksum": imported.checksum(),
+            },
+        }
+        site.replication_inbox.store_response(op_id, response_body, status="PROCESSED")
+
+        if failure_mode == "after_commit_ack_lost":
+            return jsonify({
+                "success": False,
+                "message": "SIMULATED_ACK_LOSS_AFTER_COMMIT: target da commit, source se retry bang op_id.",
+                "op_id": op_id,
+                "source_site": source_site,
+                "target_site": site.site_id,
+                "failure_mode": "after_commit_ack_lost",
+            }), 504
+
+        return jsonify(response_body), 200 if idempotent_duplicate else 201
+
+    @app.route("/replication/outbox", methods=["GET"])
+    def replication_outbox():
+        return jsonify({
+            "site_id": site.site_id,
+            "summary": site.replication_outbox.summary(),
+            "entries": site.replication_outbox.list(
+                status=request.args.get("status"),
+                target_site=request.args.get("target_site"),
+            ),
+        })
+
+    @app.route("/replication/inbox", methods=["GET"])
+    def replication_inbox():
+        return jsonify({
+            "site_id": site.site_id,
+            "entries": site.replication_inbox.list(status=request.args.get("status")),
+        })
+
+    @app.route("/replication/replay", methods=["POST"])
+    def replication_replay():
+        data = _json_payload()
+        target_site = data.get("target_site")
+        if target_site and target_site not in _SITE_PORT_MAP:
+            return jsonify({
+                "success": False,
+                "error": "INVALID_TARGET_SITE",
+                "message": "target_site khong hop le.",
+            }), 400
+        limit = data.get("limit", 200)
+        try:
+            limit = max(1, min(int(limit), 1000))
+        except Exception:
+            return jsonify({
+                "success": False,
+                "error": "INVALID_LIMIT",
+                "message": "limit phai la so nguyen trong khoang 1..1000.",
+            }), 400
+        pending = site.replication_outbox.pending(target_site=target_site)
+        selected = pending[:limit]
+        results = [_attempt_replication_delivery(op) for op in selected]
+        delivered = sum(1 for result in results if result["delivered"])
+        return jsonify({
+            "success": True,
+            "message": f"Replay complete: {delivered}/{len(results)} operations ACKED.",
+            "site_id": site.site_id,
+            "target_site": target_site,
+            "attempted": len(results),
+            "delivered": delivered,
+            "still_pending": len(results) - delivered,
+            "remaining_queue": max(len(pending) - len(selected), 0),
+            "outbox": site.replication_outbox.summary(),
+            "results": results,
+        })
 
     @app.route("/logs", methods=["GET"])
     def get_logs():
@@ -271,25 +764,29 @@ def create_app(site):
                     delta_deserialize_ms = (time.perf_counter() - t0) * 1000
 
                     delta_total_ms = delta_compute_ms + delta_serialize_ms + delta_deserialize_ms
+                    full_snapshot_bytes = len(snap_bytes)
+                    delta_patch_bytes = delta_store.delta_patch_bytes(pid, v, branch=snap_obj.branch or "main")
+                    saving_percent = round(
+                        (1 - delta_patch_bytes / max(full_snapshot_bytes, 1)) * 100, 1
+                    )
 
                     measurements.append({
                         "part_id":             pid,
                         "version":             v,
-                        "k_deltas":            k,
+                        "rehydration_steps":   k,
                         "snap_db_read_ms":     round(db_read_ms,            3),
                         "snap_serialize_ms":   round(snap_serialize_ms,     3),
                         "snap_deserialize_ms": round(snap_deserialize_ms,   3),
                         "snap_total_ms":       round(snap_total_ms,          3),
-                        "snap_payload_bytes":  len(snap_bytes),
+                        "full_snapshot_bytes": full_snapshot_bytes,
                         "delta_compute_ms":       round(delta_compute_ms,      3),
                         "delta_serialize_ms":     round(delta_serialize_ms,    3),
                         "delta_deserialize_ms":   round(delta_deserialize_ms,  3),
                         "delta_total_ms":         round(delta_total_ms,        3),
-                        "delta_payload_bytes":    len(delta_bytes),
+                        "delta_patch_bytes":      delta_patch_bytes,
+                        "rehydrated_object_bytes": len(delta_bytes),
                         "overhead_ms":         round(delta_total_ms - snap_total_ms, 3),
-                        "payload_savings_pct": round(
-                            (1 - len(delta_bytes) / max(len(snap_bytes), 1)) * 100, 1
-                        ),
+                        "saving_percent":      saving_percent,
                     })
             except Exception as e:
                 print(f"[rehydration_benchmark] {pid}: {e}")
@@ -300,8 +797,8 @@ def create_app(site):
         n = len(measurements)
         avg_snap  = sum(m["snap_total_ms"]  for m in measurements) / n
         avg_delta = sum(m["delta_total_ms"] for m in measurements) / n
-        avg_k     = sum(m["k_deltas"]       for m in measurements) / n
-        avg_save  = sum(m["payload_savings_pct"] for m in measurements) / n
+        avg_k     = sum(m["rehydration_steps"] for m in measurements) / n
+        avg_save  = sum(m["saving_percent"] for m in measurements) / n
 
         return jsonify({
             "site_id":             site.site_id,
@@ -309,13 +806,14 @@ def create_app(site):
             "avg_snapshot_ms":     round(avg_snap,  3),
             "avg_delta_ms":        round(avg_delta, 3),
             "avg_overhead_ms":     round(avg_delta - avg_snap, 3),
-            "avg_k_deltas":        round(avg_k, 1),
+            "avg_rehydration_steps": round(avg_k, 1),
             "avg_payload_savings": round(avg_save, 1),
             "theory": {
                 "snapshot_complexity": "O(1) — direct DB lookup",
                 "delta_complexity":    "O(k) — apply k deltas sequentially",
                 "reference":           "Özsu & Valduriez §15.6: Delta Storage Trade-offs",
-                "verdict": "Delta: tiet kiem ~60-85% payload nhung ton O(k) compute. "
+                "metric_note": "Storage bytes la logical JSON payload bytes, khong phai physical SQLite file size.",
+                "verdict": "Delta: tiet kiem payload nhung ton O(k) compute. "
                            "Full Snapshot: nhanh hon nhung ton gap ~5-10x storage.",
             },
         })
@@ -451,7 +949,9 @@ def create_app(site):
             "storage_size_bytes": db_size,
             "categories_breakdown": categories,
             "schema": {
-                "part_id": "string", "geometry": "nested dict",
+                "part_id": "string", "category": "string",
+                "geometry": "nested dict",
+                "geometry.properties.tolerance_mm": "float",
                 "version": "int", "oid": "UUID",
                 "branch": "string", "site_origin": "string"
             },

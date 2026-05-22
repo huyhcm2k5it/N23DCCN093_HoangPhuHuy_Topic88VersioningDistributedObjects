@@ -13,7 +13,7 @@ function ArchitectureDiagram() {
 
         {/* Coordinator */}
         <rect x="190" y="80" width="140" height="34" rx="10" fill="rgba(245,158,11,.1)" stroke="rgba(245,158,11,.3)" strokeWidth="1.5"/>
-        <text x="260" y="101" textAnchor="middle" fill="#fbbf24" fontSize="12" fontWeight="600">🔄 Coordinator (WAL)</text>
+        <text x="260" y="101" textAnchor="middle" fill="#fbbf24" fontSize="12" fontWeight="600">🔄 Coordinator Metadata</text>
 
         {/* Lines: Client → Coordinator */}
         <line x1="260" y1="48" x2="260" y2="80" stroke="rgba(148,163,184,.3)" strokeWidth="1.5" strokeDasharray="4,3"/>
@@ -39,7 +39,7 @@ function ArchitectureDiagram() {
         <text x="430" y="186" textAnchor="middle" fill="#10b981" fontSize="13" fontWeight="700">Site-C (ĐN)</text>
         <text x="430" y="205" textAnchor="middle" fill="#64748b" fontSize="10">Port :5003</text>
         <text x="430" y="222" textAnchor="middle" fill="#34d399" fontSize="10">Interior Parts</text>
-        <text x="430" y="240" textAnchor="middle" fill="#fbbf24" fontSize="10">Timestamp</text>
+        <text x="430" y="240" textAnchor="middle" fill="#a78bfa" fontSize="10">Branching</text>
         <rect x="375" y="254" width="110" height="22" rx="5" fill="rgba(16,185,129,.1)" stroke="rgba(16,185,129,.2)" strokeWidth="1"/>
         <text x="430" y="269" textAnchor="middle" fill="#94a3b8" fontSize="9">SQLite Site-C.db</text>
 
@@ -60,7 +60,7 @@ function ArchitectureDiagram() {
 // ─── Benchmark Chart (SVG Bar Chart) ───
 function BenchmarkChart({ data }) {
   if (!data || !data.snapshot_sizes) {
-    return <div style={{ textAlign:'center', padding:30, color:'#475569', fontSize:13 }}>Chưa có dữ liệu benchmark. Chạy: python benchmark.py</div>;
+    return <div style={{ textAlign:'center', padding:30, color:'#475569', fontSize:13 }}>Chưa có dữ liệu benchmark. Chạy: python main.py --benchmark</div>;
   }
 
   const { snapshot_sizes, delta_sizes, cumulative_snapshot, cumulative_delta, savings_percent, num_versions } = data;
@@ -313,7 +313,7 @@ export default function TabOverview({ sites }) {
               { label:'Sites', value:'3 (HN, SG, ĐN)', Icon: Server, color:'#60a5fa' },
               { label:'Protocol', value:'HTTP REST API', Icon: Activity, color:'#34d399' },
               { label:'Storage', value:'SQLite per site', Icon: HardDrive, color:'#fbbf24' },
-              { label:'Coordinator', value:'WAL + Crash Recovery', Icon: GitBranch, color:'#a78bfa' },
+              { label:'Coordinator', value:'Metadata + Version Graph', Icon: GitBranch, color:'#a78bfa' },
             ].map(({ label, value, Icon, color }) => (
               <div key={label} style={{ background:'rgba(255,255,255,.02)', borderRadius:8, padding:'8px 10px', display:'flex', alignItems:'center', gap:8 }}>
                 <Icon size={14} style={{ color, flexShrink:0 }} />
@@ -428,7 +428,7 @@ export default function TabOverview({ sites }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
               {[
                 { label: 'Snapshot avg latency', value: `${rehydration.avg_snapshot_ms} ms`, sub: 'O(1)', color: '#34d399' },
-                { label: 'Delta avg latency',    value: `${rehydration.avg_delta_ms} ms`,    sub: `O(${rehydration.avg_k_deltas} deltas)`, color: '#f87171' },
+                { label: 'Delta avg latency',    value: `${rehydration.avg_delta_ms} ms`,    sub: `O(${rehydration.avg_rehydration_steps} deltas)`, color: '#f87171' },
                 { label: 'Overhead per request', value: `+${rehydration.avg_overhead_ms} ms`, sub: 'Delta vs Snapshot', color: '#fbbf24' },
                 { label: 'Payload tiết kiệm',   value: `${rehydration.avg_payload_savings}%`, sub: 'Delta vs Snapshot bytes', color: '#a78bfa' },
               ].map(({ label, value, sub, color }) => (
@@ -455,7 +455,7 @@ export default function TabOverview({ sites }) {
                     <tr key={i} style={{ borderBottom: '0.5px solid rgba(255,255,255,.04)' }}>
                       <td style={{ padding:'5px 8px', fontWeight:500, color:'#60a5fa', textAlign:'left', fontFamily:'monospace', fontSize:10 }}>{m.part_id}</td>
                       <td style={{ padding:'5px 8px', textAlign:'right', color:'#94a3b8' }}>v{m.version}</td>
-                      <td style={{ padding:'5px 8px', textAlign:'right', color:'#fbbf24', fontWeight:600 }}>{m.k_deltas}</td>
+                      <td style={{ padding:'5px 8px', textAlign:'right', color:'#fbbf24', fontWeight:600 }}>{m.rehydration_steps}</td>
                       <td style={{ padding:'5px 8px', textAlign:'right', color:'#34d399' }}>{m.snap_db_read_ms}</td>
                       <td style={{ padding:'5px 8px', textAlign:'right', color:'#34d399' }}>{m.snap_serialize_ms}</td>
                       <td style={{ padding:'5px 8px', textAlign:'right', color:'#34d399', fontWeight:600 }}>{m.snap_total_ms}</td>
@@ -463,7 +463,7 @@ export default function TabOverview({ sites }) {
                       <td style={{ padding:'5px 8px', textAlign:'right', color:'#f87171' }}>{m.delta_serialize_ms}</td>
                       <td style={{ padding:'5px 8px', textAlign:'right', color:'#f87171', fontWeight:600 }}>{m.delta_total_ms}</td>
                       <td style={{ padding:'5px 8px', textAlign:'right', color: m.overhead_ms > 0 ? '#fbbf24' : '#34d399' }}>{m.overhead_ms > 0 ? '+' : ''}{m.overhead_ms}ms</td>
-                      <td style={{ padding:'5px 8px', textAlign:'right', color:'#a78bfa', fontWeight:600 }}>{m.payload_savings_pct}%</td>
+                      <td style={{ padding:'5px 8px', textAlign:'right', color:'#a78bfa', fontWeight:600 }}>{m.saving_percent}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -573,7 +573,7 @@ export default function TabOverview({ sites }) {
             </div>
 
             <div style={{ marginTop: 10, fontSize: 11, color: '#475569' }}>
-              Benchmark trên: <code style={{ fontFamily: 'monospace' }}>{serializationData.part_id} v{serializationData.version}</code> — {serializationData.iterations} iterations mỗi method
+              Benchmark trên: <code style={{ fontFamily: 'monospace' }}>{serializationData.part_id}</code> — {serializationData.iterations} iterations mỗi method
             </div>
           </>
         ) : (

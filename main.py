@@ -1,7 +1,6 @@
 """
 Module: main.py
-Mo ta: Diem vao chinh cua chuong trinh.
-Mo ta logic backend day du (cac tang, API, WAL): xem docstring dau file demo_unified.py
+Mo ta: Diem vao duy nhat de chay server, benchmark, demo va clean DB.
 
 Cach chay:
     python main.py --benchmark    Chay so sanh Snapshot vs Delta
@@ -10,22 +9,25 @@ Cach chay:
     python main.py --clean        Xoa toan bo DB (reset)
 """
 
-import sys
 import os
 import json
+import sys
 import threading
 import time
 
 if sys.platform == "win32":
     os.environ.setdefault("PYTHONIOENCODING", "utf-8")
-    try: sys.stdout.reconfigure(encoding="utf-8")
-    except: pass
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 from app.models import Geometry, CADModel
 from app.site_node import SiteNode
 from app.server import create_app
-from scripts.benchmark import run_benchmark, run_conflict_demo
-import demo_unified
+from app.coordinator import create_coordinator_app
+from scripts.benchmark import run_benchmark
+from scripts.demo import run_full_backend_demo
 
 BANNER = """
 +==============================================================+
@@ -35,21 +37,44 @@ BANNER = """
 +==============================================================+
 """
 
+BASE_DIR = os.path.dirname(__file__)
+DB_DIR = os.path.join(BASE_DIR, "app", "db")
+DATASET_FILES = {
+    "Site-A": os.path.join(BASE_DIR, "dataset", "site_a_engine.json"),
+    "Site-B": os.path.join(BASE_DIR, "dataset", "site_b_chassis.json"),
+    "Site-C": os.path.join(BASE_DIR, "dataset", "site_c_interior.json"),
+}
+USAGE = (
+    "Cach su dung:\n"
+    "  python main.py --benchmark\n"
+    "  python main.py --servers\n"
+    "  python main.py --demo\n"
+    "  python main.py --clean\n"
+    "  python main.py --help"
+)
+
+
+def is_runtime_db_file(filename):
+    return filename.endswith((".db", ".db-wal", ".db-shm", "_wal.json"))
+
+
 def clean_databases():
-    """Xoa toan bo file .db va _wal.json trong thu muc app/db/."""
-    db_dir = os.path.join(os.path.dirname(__file__), "app", "db")
-    if not os.path.exists(db_dir):
+    """Xoa runtime SQLite/WAL files trong thu muc app/db/."""
+    if not os.path.exists(DB_DIR):
         print("  Khong co DB nao can xoa.")
         return
+
     deleted = []
     skipped = []
-    for f in os.listdir(db_dir):
-        if f.endswith(".db") or f.endswith("_wal.json"):
-            try:
-                os.remove(os.path.join(db_dir, f))
-                deleted.append(f)
-            except PermissionError:
-                skipped.append(f)
+    for filename in os.listdir(DB_DIR):
+        if not is_runtime_db_file(filename):
+            continue
+        try:
+            os.remove(os.path.join(DB_DIR, filename))
+            deleted.append(filename)
+        except PermissionError:
+            skipped.append(filename)
+
     if deleted:
         print(f"  Da xoa: {', '.join(deleted)}")
     if skipped:
@@ -57,9 +82,9 @@ def clean_databases():
     if not deleted and not skipped:
         print("  Khong co file nao.")
 
-    # Reset initialized_dbs cache trong storage module
     from app.storage import _initialized_dbs
     _initialized_dbs.clear()
+
 
 def load_fragment_into_site(site, json_path):
     """
@@ -73,18 +98,19 @@ def load_fragment_into_site(site, json_path):
         data = json.load(f)
     parts = data.get("parts", [])
     print(f"  [{site.site_id}] Load {len(parts)} parts from {os.path.basename(json_path)}")
-    for p in parts:
-        geo = Geometry(**p["geometry"])
+    for part in parts:
+        geo = Geometry(**part["geometry"])
         model = CADModel(
-            part_id=p["part_id"],
+            part_id=part["part_id"],
             geometry=geo,
-            version=p.get("version", 1),
-            site_origin=p.get("site_origin", site.site_id),
-            branch=p.get("branch", "main"),
+            version=part.get("version", 1),
+            site_origin=part.get("site_origin", site.site_id),
+            branch=part.get("branch", "main"),
         )
-        # Luu vao ca 2 store: snapshot (full) va delta (base)
         site.snapshot_store.save(model)
         site.delta_store.save_base(model)
+        site.notify_register_object(model)
+        site.notify_update_head(model, parent_version=None, parent_branch=None)
     return len(parts)
 
 def start_site_server(site, port):
@@ -92,36 +118,41 @@ def start_site_server(site, port):
     print(f"  [{site.site_id}] API running at http://127.0.0.1:{port}")
     app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)
 
+
+def start_coordinator_server(port=5000):
+    app = create_coordinator_app()
+    print(f"  [Coordinator] API running at http://127.0.0.1:{port}")
+    app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)
+
+
 def cmd_benchmark():
     run_benchmark(num_versions=10, complexity=5)
-    run_conflict_demo()
     print("\n  Dang tao bieu do...")
     try:
-        from visualize import generate_all_charts
+        from scripts.visualize import generate_all_charts
         generate_all_charts()
-    except ImportError:
-        print("  (Bo qua bieu do - pip install matplotlib)")
+    except Exception as exc:
+        print(f"  (Bo qua bieu do: {exc})")
+
 
 def cmd_servers():
-    base = os.path.dirname(__file__)
-    fragment_files = {
-        "Site-A": os.path.join(base, "dataset", "site_a_engine.json"),
-        "Site-B": os.path.join(base, "dataset", "site_b_chassis.json"),
-        "Site-C": os.path.join(base, "dataset", "site_c_interior.json"),
-    }
-    missing = [k for k, v in fragment_files.items() if not os.path.exists(v)]
+    missing = [site_id for site_id, path in DATASET_FILES.items() if not os.path.exists(path)]
     if missing:
         print(f"  [!] Thieu dataset: {missing}. Chay 'python scripts/generate_dataset.py' truoc.")
         return
 
+    coordinator_thread = threading.Thread(target=start_coordinator_server, args=(5000,), daemon=True)
+    coordinator_thread.start()
+    time.sleep(0.8)
+
     print("\n  Khoi dong 3 site phan tan (Horizontal Fragmentation)...\n")
     site_a = SiteNode("Site-A", strategy="branching")
     site_b = SiteNode("Site-B", strategy="branching")
-    site_c = SiteNode("Site-C", strategy="timestamp")
+    site_c = SiteNode("Site-C", strategy="branching")
 
-    na = load_fragment_into_site(site_a, fragment_files["Site-A"])
-    nb = load_fragment_into_site(site_b, fragment_files["Site-B"])
-    nc = load_fragment_into_site(site_c, fragment_files["Site-C"])
+    na = load_fragment_into_site(site_a, DATASET_FILES["Site-A"])
+    nb = load_fragment_into_site(site_b, DATASET_FILES["Site-B"])
+    nc = load_fragment_into_site(site_c, DATASET_FILES["Site-C"])
 
     print(f"\n  Phan manh hoan tat: A={na}, B={nb}, C={nc} parts. UNION = {na+nb+nc}")
 
@@ -130,33 +161,48 @@ def cmd_servers():
         threading.Thread(target=start_site_server, args=(site_b, 5002), daemon=True),
         threading.Thread(target=start_site_server, args=(site_c, 5003), daemon=True),
     ]
-    for t in threads: t.start(); time.sleep(0.5)
+    for thread in threads:
+        thread.start()
+        time.sleep(0.5)
 
     print("\n  API Endpoints:")
+    print("    Coordinator (Metadata):      http://127.0.0.1:5000")
     print("    Site-A (Engine/Branching): http://127.0.0.1:5001")
     print("    Site-B (Chassis/Branching): http://127.0.0.1:5002")
-    print("    Site-C (Interior/Timestamp): http://127.0.0.1:5003")
+    print("    Site-C (Interior/Branching): http://127.0.0.1:5003")
     print("  Nhan Ctrl+C de dung.\n")
     try:
-        while True: time.sleep(1)
+        while True:
+            time.sleep(1)
     except KeyboardInterrupt:
         print("\n  Dang tat servers...")
 
+
 def cmd_demo():
-    demo_unified.run_full_backend_demo()
+    run_full_backend_demo()
+
 
 def main():
     print(BANNER)
     if len(sys.argv) < 2:
-        print("Cach su dung:\n  python main.py --benchmark\n  python main.py --servers\n  python main.py --demo\n  python main.py --clean\n  python main.py --help")
+        print(USAGE)
         return
+
     cmd = sys.argv[1]
-    if cmd == "--benchmark": cmd_benchmark()
-    elif cmd == "--servers": cmd_servers()
-    elif cmd == "--demo": cmd_demo()
-    elif cmd == "--clean": clean_databases()
-    elif cmd == "--help": print(__doc__)
-    else: print(f"Lenh khong hop le: {cmd}")
+    commands = {
+        "--benchmark": cmd_benchmark,
+        "--servers": cmd_servers,
+        "--demo": cmd_demo,
+        "--clean": clean_databases,
+        "--help": lambda: print(__doc__),
+    }
+    handler = commands.get(cmd)
+    if not handler:
+        print(f"Lenh khong hop le: {cmd}")
+        print(USAGE)
+        return
+    handler()
+
 
 if __name__ == "__main__":
     main()

@@ -15,6 +15,10 @@ function SiteCard({ site }) {
   const snap   = site.storage?.snapshot_total_bytes || 0;
   const delta  = site.storage?.delta_total_bytes    || 0;
   const saving = site.storage?.savings_percent ?? 0;
+  const disconnected = site.reachable && site.network_online === false;
+  const statusLabel = disconnected ? 'Disconnected' : (site.online ? 'Online' : 'Offline');
+  const statusBadge = site.online ? 'badge-green' : (disconnected ? 'badge-amber' : 'badge-red');
+  const statusDot = site.online ? 'dot-green' : (disconnected ? 'dot-amber' : 'dot-red');
 
   return (
     <div className="card" style={{ borderTop: `3px solid ${color}` }}>
@@ -30,11 +34,11 @@ function SiteCard({ site }) {
           </div>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <span className={`badge ${site.online ? 'badge-green' : 'badge-red'}`}>
-            <span className={`dot ${site.online ? 'dot-green' : 'dot-red'}`} />
-            {site.online ? 'Online' : 'Offline'}
+          <span className={`badge ${statusBadge}`}>
+            <span className={`dot ${statusDot}`} />
+            {statusLabel}
           </span>
-          <span className={`badge ${site.strategy === 'Timestamp' ? 'badge-amber' : 'badge-blue'}`}>
+          <span className="badge badge-blue">
             {site.strategy}
           </span>
         </div>
@@ -87,7 +91,7 @@ export default function TabDashboard({ sites }) {
           { label: 'Sites Online',    value: `${onlineCount}/3`,   color: onlineCount === 3 ? '#34d399' : '#f87171', Icon: Server    },
           { label: 'Total Parts',     value: totalParts,            color: '#60a5fa',                                 Icon: Database  },
           { label: 'Fragmentation',   value: 'Horizontal',          color: '#a78bfa',                                 Icon: Layers    },
-          { label: 'Conflict Modes',  value: 'Branch + Timestamp',  color: '#fbbf24',                                 Icon: GitBranch },
+          { label: 'Conflict Mode',   value: 'Branching',           color: '#fbbf24',                                 Icon: GitBranch },
         ].map(({ label, value, color, Icon }) => (
           <div key={label} className="card flex items-center gap-3">
             <div style={{ background: `${color}1a`, borderRadius: 9, padding: 9 }}>
@@ -137,13 +141,13 @@ export default function TabDashboard({ sites }) {
                   </td>
                   <td style={{ padding: '10px 12px', fontWeight: 600, color: '#e2e8f0' }}>{site.models?.length || 0}</td>
                   <td style={{ padding: '10px 12px' }}>
-                    <span className={`badge ${site.strategy === 'Timestamp' ? 'badge-amber' : 'badge-blue'}`}>
+                    <span className="badge badge-blue">
                       {site.strategy}
                     </span>
                   </td>
                   <td style={{ padding: '10px 12px' }}>
-                    <span className={`badge ${site.online ? 'badge-green' : 'badge-red'}`}>
-                      {site.online ? '● Online' : '○ Offline'}
+                    <span className={`badge ${site.online ? 'badge-green' : (site.reachable && site.network_online === false ? 'badge-amber' : 'badge-red')}`}>
+                      {site.online ? '● Online' : (site.reachable && site.network_online === false ? '● Disconnected' : '○ Offline')}
                     </span>
                   </td>
                 </tr>

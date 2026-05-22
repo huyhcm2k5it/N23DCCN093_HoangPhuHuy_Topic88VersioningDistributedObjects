@@ -7,6 +7,7 @@
   "parts": [
     {
       "part_id": "INT-001",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -1081,8 +1082,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 16.98
         }
       },
@@ -1092,6 +1095,7 @@
     },
     {
       "part_id": "INT-002",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -2166,8 +2170,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 29.29
         }
       },
@@ -2177,6 +2183,7 @@
     },
     {
       "part_id": "INT-003",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -3251,8 +3258,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 22.98
         }
       },
@@ -3262,6 +3271,7 @@
     },
     {
       "part_id": "INT-004",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -4336,8 +4346,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 19.35
         }
       },
@@ -4347,6 +4359,7 @@
     },
     {
       "part_id": "INT-005",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -5421,8 +5434,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 13.79
         }
       },
@@ -5432,6 +5447,7 @@
     },
     {
       "part_id": "INT-006",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -6506,8 +6522,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 18.53
         }
       },
@@ -6517,6 +6535,7 @@
     },
     {
       "part_id": "INT-007",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -7591,8 +7610,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 8.28
         }
       },
@@ -7602,6 +7623,7 @@
     },
     {
       "part_id": "INT-008",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -8676,8 +8698,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 21.35
         }
       },
@@ -8687,6 +8711,7 @@
     },
     {
       "part_id": "INT-009",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -9761,8 +9786,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 16.94
         }
       },
@@ -9772,6 +9799,7 @@
     },
     {
       "part_id": "INT-010",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -10846,8 +10874,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 16.41
         }
       },
@@ -10857,6 +10887,7 @@
     },
     {
       "part_id": "INT-011",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -11931,8 +11962,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 10.56
         }
       },
@@ -11942,6 +11975,7 @@
     },
     {
       "part_id": "INT-012",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -13016,8 +13050,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 28.45
         }
       },
@@ -13027,6 +13063,7 @@
     },
     {
       "part_id": "INT-013",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -14101,8 +14138,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 16.69
         }
       },
@@ -14112,6 +14151,7 @@
     },
     {
       "part_id": "INT-014",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -15186,8 +15226,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 27.33
         }
       },
@@ -15197,6 +15239,7 @@
     },
     {
       "part_id": "INT-015",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -16271,8 +16314,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 8.13
         }
       },
@@ -16282,6 +16327,7 @@
     },
     {
       "part_id": "INT-016",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -17356,8 +17402,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 24.45
         }
       },
@@ -17367,6 +17415,7 @@
     },
     {
       "part_id": "INT-017",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -18441,8 +18490,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 12.16
         }
       },
@@ -18452,6 +18503,7 @@
     },
     {
       "part_id": "INT-018",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -19526,8 +19578,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 16.34
         }
       },
@@ -19537,6 +19591,7 @@
     },
     {
       "part_id": "INT-019",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -20611,8 +20666,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 18.33
         }
       },
@@ -20622,6 +20679,7 @@
     },
     {
       "part_id": "INT-020",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -21696,8 +21754,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 24.07
         }
       },
@@ -21707,6 +21767,7 @@
     },
     {
       "part_id": "INT-021",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -22781,8 +22842,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 17.89
         }
       },
@@ -22792,6 +22855,7 @@
     },
     {
       "part_id": "INT-022",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -23866,8 +23930,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 27.24
         }
       },
@@ -23877,6 +23943,7 @@
     },
     {
       "part_id": "INT-023",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -24951,8 +25018,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 16.27
         }
       },
@@ -24962,6 +25031,7 @@
     },
     {
       "part_id": "INT-024",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -26036,8 +26106,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 27.32
         }
       },
@@ -26047,6 +26119,7 @@
     },
     {
       "part_id": "INT-025",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -27121,8 +27194,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 15.07
         }
       },
@@ -27132,6 +27207,7 @@
     },
     {
       "part_id": "INT-026",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -28206,8 +28282,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 8.91
         }
       },
@@ -28217,6 +28295,7 @@
     },
     {
       "part_id": "INT-027",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -29291,8 +29370,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 23.58
         }
       },
@@ -29302,6 +29383,7 @@
     },
     {
       "part_id": "INT-028",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -30376,8 +30458,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 23.68
         }
       },
@@ -30387,6 +30471,7 @@
     },
     {
       "part_id": "INT-029",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -31461,8 +31546,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 12.71
         }
       },
@@ -31472,6 +31559,7 @@
     },
     {
       "part_id": "INT-030",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -32546,8 +32634,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 5.46
         }
       },
@@ -32557,6 +32647,7 @@
     },
     {
       "part_id": "INT-031",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -33631,8 +33722,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 25.82
         }
       },
@@ -33642,6 +33735,7 @@
     },
     {
       "part_id": "INT-032",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -34716,8 +34810,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 13.17
         }
       },
@@ -34727,6 +34823,7 @@
     },
     {
       "part_id": "INT-033",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -35801,8 +35898,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 14.09
         }
       },
@@ -35812,6 +35911,7 @@
     },
     {
       "part_id": "INT-034",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -36886,8 +36986,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 7.14
         }
       },
@@ -36897,6 +36999,7 @@
     },
     {
       "part_id": "INT-035",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -37971,8 +38074,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 18.56
         }
       },
@@ -37982,6 +38087,7 @@
     },
     {
       "part_id": "INT-036",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -39056,8 +39162,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 26.13
         }
       },
@@ -39067,6 +39175,7 @@
     },
     {
       "part_id": "INT-037",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -40141,8 +40250,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 10.59
         }
       },
@@ -40152,6 +40263,7 @@
     },
     {
       "part_id": "INT-038",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -41226,8 +41338,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 25.33
         }
       },
@@ -41237,6 +41351,7 @@
     },
     {
       "part_id": "INT-039",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -42311,8 +42426,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 18.02
         }
       },
@@ -42322,6 +42439,7 @@
     },
     {
       "part_id": "INT-040",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -43396,8 +43514,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 5.21
         }
       },
@@ -43407,6 +43527,7 @@
     },
     {
       "part_id": "INT-041",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -44481,8 +44602,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 23.39
         }
       },
@@ -44492,6 +44615,7 @@
     },
     {
       "part_id": "INT-042",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -45566,8 +45690,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 10.88
         }
       },
@@ -45577,6 +45703,7 @@
     },
     {
       "part_id": "INT-043",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -46651,8 +46778,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 14.27
         }
       },
@@ -46662,6 +46791,7 @@
     },
     {
       "part_id": "INT-044",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -47736,8 +47866,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 10.59
         }
       },
@@ -47747,6 +47879,7 @@
     },
     {
       "part_id": "INT-045",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -48821,8 +48954,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 26.64
         }
       },
@@ -48832,6 +48967,7 @@
     },
     {
       "part_id": "INT-046",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -49906,8 +50042,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 25.63
         }
       },
@@ -49917,6 +50055,7 @@
     },
     {
       "part_id": "INT-047",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -50991,8 +51130,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 26.63
         }
       },
@@ -51002,6 +51143,7 @@
     },
     {
       "part_id": "INT-048",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -52076,8 +52218,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 10.7
         }
       },
@@ -52087,6 +52231,7 @@
     },
     {
       "part_id": "INT-049",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -53161,8 +53306,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 26.38
         }
       },
@@ -53172,6 +53319,7 @@
     },
     {
       "part_id": "INT-050",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -54246,8 +54394,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 27.08
         }
       },
@@ -54257,6 +54407,7 @@
     },
     {
       "part_id": "INT-051",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -55331,8 +55482,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 6.14
         }
       },
@@ -55342,6 +55495,7 @@
     },
     {
       "part_id": "INT-052",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -56416,8 +56570,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 9.16
         }
       },
@@ -56427,6 +56583,7 @@
     },
     {
       "part_id": "INT-053",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -57501,8 +57658,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 12.72
         }
       },
@@ -57512,6 +57671,7 @@
     },
     {
       "part_id": "INT-054",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -58586,8 +58746,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 13.48
         }
       },
@@ -58597,6 +58759,7 @@
     },
     {
       "part_id": "INT-055",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -59671,8 +59834,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 12.25
         }
       },
@@ -59682,6 +59847,7 @@
     },
     {
       "part_id": "INT-056",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -60756,8 +60922,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 19.21
         }
       },
@@ -60767,6 +60935,7 @@
     },
     {
       "part_id": "INT-057",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -61841,8 +62010,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 14.31
         }
       },
@@ -61852,6 +62023,7 @@
     },
     {
       "part_id": "INT-058",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -62926,8 +63098,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 24.72
         }
       },
@@ -62937,6 +63111,7 @@
     },
     {
       "part_id": "INT-059",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -64011,8 +64186,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 25.56
         }
       },
@@ -64022,6 +64199,7 @@
     },
     {
       "part_id": "INT-060",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -65096,8 +65274,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 8.75
         }
       },
@@ -65107,6 +65287,7 @@
     },
     {
       "part_id": "INT-061",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -66181,8 +66362,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 12.23
         }
       },
@@ -66192,6 +66375,7 @@
     },
     {
       "part_id": "INT-062",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -67266,8 +67450,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 8.49
         }
       },
@@ -67277,6 +67463,7 @@
     },
     {
       "part_id": "INT-063",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -68351,8 +68538,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 21.16
         }
       },
@@ -68362,6 +68551,7 @@
     },
     {
       "part_id": "INT-064",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -69436,8 +69626,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 8.13
         }
       },
@@ -69447,6 +69639,7 @@
     },
     {
       "part_id": "INT-065",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -70521,8 +70714,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 18.7
         }
       },
@@ -70532,6 +70727,7 @@
     },
     {
       "part_id": "INT-066",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -71606,8 +71802,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 22.65
         }
       },
@@ -71617,6 +71815,7 @@
     },
     {
       "part_id": "INT-067",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -72691,8 +72890,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 18.25
         }
       },
@@ -72702,6 +72903,7 @@
     },
     {
       "part_id": "INT-068",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -73776,8 +73978,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 10.62
         }
       },
@@ -73787,6 +73991,7 @@
     },
     {
       "part_id": "INT-069",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -74861,8 +75066,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 21.38
         }
       },
@@ -74872,6 +75079,7 @@
     },
     {
       "part_id": "INT-070",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -75946,8 +76154,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 22.3
         }
       },
@@ -75957,6 +76167,7 @@
     },
     {
       "part_id": "INT-071",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -77031,8 +77242,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 26.81
         }
       },
@@ -77042,6 +77255,7 @@
     },
     {
       "part_id": "INT-072",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -78116,8 +78330,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 23.58
         }
       },
@@ -78127,6 +78343,7 @@
     },
     {
       "part_id": "INT-073",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -79201,8 +79418,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 15.34
         }
       },
@@ -79212,6 +79431,7 @@
     },
     {
       "part_id": "INT-074",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -80286,8 +80506,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 26.81
         }
       },
@@ -80297,6 +80519,7 @@
     },
     {
       "part_id": "INT-075",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -81371,8 +81594,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 11.81
         }
       },
@@ -81382,6 +81607,7 @@
     },
     {
       "part_id": "INT-076",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -82456,8 +82682,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 19.22
         }
       },
@@ -82467,6 +82695,7 @@
     },
     {
       "part_id": "INT-077",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -83541,8 +83770,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 12.25
         }
       },
@@ -83552,6 +83783,7 @@
     },
     {
       "part_id": "INT-078",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -84626,8 +84858,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 22.48
         }
       },
@@ -84637,6 +84871,7 @@
     },
     {
       "part_id": "INT-079",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -85711,8 +85946,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 12.97
         }
       },
@@ -85722,6 +85959,7 @@
     },
     {
       "part_id": "INT-080",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -86796,8 +87034,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 8.88
         }
       },
@@ -86807,6 +87047,7 @@
     },
     {
       "part_id": "INT-081",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -87881,8 +88122,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 15.44
         }
       },
@@ -87892,6 +88135,7 @@
     },
     {
       "part_id": "INT-082",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -88966,8 +89210,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 17.88
         }
       },
@@ -88977,6 +89223,7 @@
     },
     {
       "part_id": "INT-083",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -90051,8 +90298,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 12.9
         }
       },
@@ -90062,6 +90311,7 @@
     },
     {
       "part_id": "INT-084",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -91136,8 +91386,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 13.22
         }
       },
@@ -91147,6 +91399,7 @@
     },
     {
       "part_id": "INT-085",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -92221,8 +92474,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 13.49
         }
       },
@@ -92232,6 +92487,7 @@
     },
     {
       "part_id": "INT-086",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -93306,8 +93562,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 13.84
         }
       },
@@ -93317,6 +93575,7 @@
     },
     {
       "part_id": "INT-087",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -94391,8 +94650,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 22.41
         }
       },
@@ -94402,6 +94663,7 @@
     },
     {
       "part_id": "INT-088",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -95476,8 +95738,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 24.37
         }
       },
@@ -95487,6 +95751,7 @@
     },
     {
       "part_id": "INT-089",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -96561,8 +96826,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 25.24
         }
       },
@@ -96572,6 +96839,7 @@
     },
     {
       "part_id": "INT-090",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -97646,8 +97914,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 7.94
         }
       },
@@ -97657,6 +97927,7 @@
     },
     {
       "part_id": "INT-091",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -98731,8 +99002,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 26.52
         }
       },
@@ -98742,6 +99015,7 @@
     },
     {
       "part_id": "INT-092",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -99816,8 +100090,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 5.69
         }
       },
@@ -99827,6 +100103,7 @@
     },
     {
       "part_id": "INT-093",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -100901,8 +101178,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 14.12
         }
       },
@@ -100912,6 +101191,7 @@
     },
     {
       "part_id": "INT-094",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -101986,8 +102266,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 12.93
         }
       },
@@ -101997,6 +102279,7 @@
     },
     {
       "part_id": "INT-095",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -103071,8 +103354,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 20.98
         }
       },
@@ -103082,6 +103367,7 @@
     },
     {
       "part_id": "INT-096",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -104156,8 +104442,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 22.85
         }
       },
@@ -104167,6 +104455,7 @@
     },
     {
       "part_id": "INT-097",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -105241,8 +105530,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 27.71
         }
       },
@@ -105252,6 +105543,7 @@
     },
     {
       "part_id": "INT-098",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -106326,8 +106618,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 20.22
         }
       },
@@ -106337,6 +106631,7 @@
     },
     {
       "part_id": "INT-099",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -107411,8 +107706,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 17.32
         }
       },
@@ -107422,6 +107719,7 @@
     },
     {
       "part_id": "INT-100",
+      "category": "interior",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -108496,8 +108794,10 @@
           ]
         ],
         "properties": {
+          "category": "interior",
           "material": "plastic",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 5.89
         }
       },

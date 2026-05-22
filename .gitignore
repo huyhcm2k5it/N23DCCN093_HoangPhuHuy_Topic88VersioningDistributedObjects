@@ -11,6 +11,11 @@ dist/
 # SQLite databases & logs (runtime data - khong commit len git)
 db/*.db
 db/*_wal.json
+app/db/*
+!app/db/.gitkeep
+*.db-wal
+*.db-shm
+*_wal.json
 
 # Results (generated files)
 results/*.png
@@ -19,4 +24,3 @@ results/*.json
 # Temp files
 temp_*.txt
 *.db
-

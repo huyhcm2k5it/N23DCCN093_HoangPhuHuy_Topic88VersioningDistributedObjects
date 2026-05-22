@@ -7,7 +7,7 @@ Topic 88: Versioning Distributed Objects - "Collaborative Design"
 SITES = {
     "Site-A": {"host": "127.0.0.1", "port": 5001, "strategy": "branching"},
     "Site-B": {"host": "127.0.0.1", "port": 5002, "strategy": "branching"},
-    "Site-C": {"host": "127.0.0.1", "port": 5003, "strategy": "timestamp"},
+    "Site-C": {"host": "127.0.0.1", "port": 5003, "strategy": "branching"},
 }
 
 # Benchmark settings

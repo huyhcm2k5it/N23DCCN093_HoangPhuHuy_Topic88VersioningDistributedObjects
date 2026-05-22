@@ -1,351 +1,459 @@
 import { useState, useEffect } from 'react';
-import { listModels, checkout, checkin, getVersions, SITES } from '../api';
-import { GitPullRequest, AlertTriangle, CheckCircle } from 'lucide-react';
+import {
+  SITES,
+  PREFIX_BY_SITE_KEY,
+  checkout,
+  checkin,
+  createModel,
+  getModel,
+  getVersions,
+  listModels,
+  replicate,
+} from '../api';
+import { createPyramidDemoGeometry } from '../demoGeometry';
+import { AlertTriangle, CheckCircle, GitPullRequest, Network, RefreshCw } from 'lucide-react';
 
 const STEPS = [
-  { id: 1, label: 'Chọn Part',        desc: 'Chọn linh kiện và Site để demo' },
-  { id: 2, label: 'Đồng Checkout',    desc: 'Kỹ sư A và B cùng checkout cùng version' },
-  { id: 3, label: 'User A Checkin',   desc: 'Kỹ sư A sửa và checkin (Thành công)' },
-  { id: 4, label: 'User B Checkin',   desc: 'Kỹ sư B checkin → XUNG ĐỘT!' },
-  { id: 5, label: 'Kết quả Xử lý',   desc: 'Phân tích kết quả conflict resolution' },
+  { id: 1, label: 'Setup' },
+  { id: 2, label: 'Checkout 2 sites' },
+  { id: 3, label: 'Source checkin' },
+  { id: 4, label: 'Sync latest' },
+  { id: 5, label: 'Resolve conflict' },
 ];
 
+function mutateModel(model, material, deltaX) {
+  const next = JSON.parse(JSON.stringify(model));
+  next.geometry.properties = {
+    ...next.geometry.properties,
+    material,
+    edited_by: material.includes('source') ? 'source_site' : 'target_site',
+  };
+  if (next.geometry.vertices?.length) {
+    next.geometry.vertices[0].x = Number((next.geometry.vertices[0].x + deltaX).toFixed(2));
+  }
+  return next;
+}
+
+function otherSiteKey(key) {
+  return key === 'a' ? 'b' : 'a';
+}
+
 export default function TabConflict({ onRefresh }) {
-  const [parts, setParts] = useState([]);
-  const [selKey, setSelKey] = useState('a');
-  const [selPart, setSelPart] = useState('');
+  const [sourceKey, setSourceKey] = useState('a');
+  const [targetKey, setTargetKey] = useState('b');
+  const [sourceParts, setSourceParts] = useState([]);
+  const [useFreshPart, setUseFreshPart] = useState(true);
+  const [selectedPart, setSelectedPart] = useState('');
+  const [activePart, setActivePart] = useState('');
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const [userAModel, setUserAModel] = useState(null);
-  const [userBModel, setUserBModel] = useState(null);
-  const [userAChange, setUserAChange] = useState('');
-  const [userBChange, setUserBChange] = useState('');
-  const [checkinResultA, setCheckinResultA] = useState(null);
-  const [checkinResultB, setCheckinResultB] = useState(null);
+  const [sourceMaterial, setSourceMaterial] = useState('source_carbon_fiber');
+  const [targetMaterial, setTargetMaterial] = useState('target_titanium_alloy');
+  const [sourceCheckout, setSourceCheckout] = useState(null);
+  const [targetCheckout, setTargetCheckout] = useState(null);
+  const [targetSeed, setTargetSeed] = useState(null);
+  const [sourceResult, setSourceResult] = useState(null);
+  const [syncResult, setSyncResult] = useState(null);
+  const [targetResult, setTargetResult] = useState(null);
   const [versionTree, setVersionTree] = useState([]);
 
   useEffect(() => {
-    listModels(selKey).then(d => setParts(d.models || [])).catch(() => setParts([]));
-    setSelPart('');
-    resetDemo();
-  }, [selKey]);
+    listModels(sourceKey).then(d => setSourceParts(d.models || [])).catch(() => setSourceParts([]));
+    setSelectedPart('');
+    resetRun();
+  }, [sourceKey]);
 
-  function resetDemo() {
-    setStep(1); setUserAModel(null); setUserBModel(null);
-    setCheckinResultA(null); setCheckinResultB(null);
-    setVersionTree([]); setError(null);
-    setUserAChange('carbon_fiber_reinforced');
-    setUserBChange('titanium_alloy_v2');
+  function resetRun() {
+    setStep(1);
+    setError(null);
+    setActivePart('');
+    setSourceCheckout(null);
+    setTargetCheckout(null);
+    setTargetSeed(null);
+    setSourceResult(null);
+    setSyncResult(null);
+    setTargetResult(null);
+    setVersionTree([]);
   }
 
-  // Buoc 2: Hai user cung checkout
-  async function handleCheckout() {
-    if (!selPart) { setError('Chọn Part trước!'); return; }
-    setLoading(true); setError(null);
+  function changeSource(key) {
+    setSourceKey(key);
+    if (key === targetKey) setTargetKey(otherSiteKey(key));
+  }
+
+  function changeTarget(key) {
+    setTargetKey(key === sourceKey ? otherSiteKey(sourceKey) : key);
+    resetRun();
+  }
+
+  async function prepareCrossSiteCheckout() {
+    if (!useFreshPart && !selectedPart) {
+      setError('Chon part co san hoac dung che do tao demo object moi.');
+      return;
+    }
+    if (sourceKey === targetKey) {
+      setError('Source site va target site phai khac nhau.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
     try {
-      const modelA = await checkout(selKey, selPart, 'Ky_su_A');
-      const modelB = await checkout(selKey, selPart, 'Ky_su_B');
-      setUserAModel(modelA);
-      setUserBModel(modelB);
+      let partId = selectedPart;
+      if (useFreshPart) {
+        const prefix = PREFIX_BY_SITE_KEY[sourceKey] || 'ENG';
+        partId = `${prefix}-XDEMO-${Date.now()}`;
+        const geometry = createPyramidDemoGeometry();
+        geometry.properties.category = SITES[sourceKey].category;
+        await createModel(sourceKey, partId, geometry);
+      }
+
+      await replicate(sourceKey, partId, SITES[targetKey].site_id);
+      const targetLatest = await getModel(targetKey, partId);
+      const sourceModel = await checkout(sourceKey, partId, 'Engineer_Source');
+      const targetModel = await checkout(targetKey, partId, 'Engineer_Target');
+
+      setActivePart(partId);
+      setSourceCheckout(sourceModel);
+      setTargetCheckout(targetModel);
+      setTargetSeed(targetLatest);
       setStep(2);
-    } catch (e) { setError(e.message); }
-    finally { setLoading(false); }
+
+      if (useFreshPart) {
+        listModels(sourceKey).then(d => setSourceParts(d.models || [])).catch(() => {});
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  // Buoc 3: User A checkin truoc
-  async function handleUserACheckin() {
-    setLoading(true); setError(null);
+  async function sourceCheckin() {
+    setLoading(true);
+    setError(null);
     try {
-      const modifiedA = { ...userAModel };
-      modifiedA.geometry = { ...modifiedA.geometry, properties: { ...modifiedA.geometry.properties, material: userAChange } };
-      
-      const res = await checkin(selKey, selPart, 'Ky_su_A', modifiedA);
-      if (res._status >= 400 || !res.success) throw new Error(res.message || 'Checkin thất bại');
-      setCheckinResultA(res);
+      const modified = mutateModel(sourceCheckout, sourceMaterial, 40);
+      const res = await checkin(sourceKey, activePart, 'Engineer_Source', modified);
+      if (res._status >= 400 || !res.success) throw new Error(res.message || 'Source checkin failed');
+      setSourceResult(res);
       setStep(3);
-    } catch (e) { setError(e.message); }
-    finally { setLoading(false); }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  // Buoc 4: User B checkin sau (XUNG DOT!)
-  async function handleUserBCheckin() {
-    setLoading(true); setError(null);
+  async function syncLatestToTarget() {
+    setLoading(true);
+    setError(null);
     try {
-      const modifiedB = { ...userBModel };
-      modifiedB.geometry = { ...modifiedB.geometry, properties: { ...modifiedB.geometry.properties, material: userBChange } };
-      
-      const res = await checkin(selKey, selPart, 'Ky_su_B', modifiedB);
-      if (res._status >= 500) throw new Error(res.message || 'Server error');
-      setCheckinResultB(res);
+      const rep = await replicate(sourceKey, activePart, SITES[targetKey].site_id);
+      const targetLatest = await getModel(targetKey, activePart);
+      setSyncResult({ ...rep, target_version: targetLatest.version, target_oid: targetLatest.oid });
+      setStep(4);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-      // Fetch version tree
+  async function targetCheckinOldCopy() {
+    setLoading(true);
+    setError(null);
+    try {
+      const modified = mutateModel(targetCheckout, targetMaterial, -35);
+      const res = await checkin(targetKey, activePart, 'Engineer_Target', modified);
+      if (res._status >= 500) throw new Error(res.message || 'Target checkin failed');
+      setTargetResult(res);
       try {
-        const versions = await getVersions(selKey, selPart);
+        const versions = await getVersions(targetKey, activePart);
         setVersionTree(versions || []);
-      } catch { setVersionTree([]); }
-
+      } catch {
+        setVersionTree([]);
+      }
       setStep(5);
       onRefresh?.();
-    } catch (e) { setError(e.message); }
-    finally { setLoading(false); }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const siteMeta = SITES[selKey];
-
+  const sourceSite = SITES[sourceKey];
+  const targetSite = SITES[targetKey];
+  const oidMatches = sourceCheckout?.oid && targetCheckout?.oid && sourceCheckout.oid === targetCheckout.oid;
   return (
-    <div style={{ color: '#111' }}>
-      <h2 style={{ fontSize: 20, fontWeight: 500, marginBottom: 4, color: '#e2e8f0' }}>Conflict Resolution Demo</h2>
+    <div style={{ color: '#e2e8f0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        <Network size={20} color="#60a5fa" />
+        <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>Cross-site Conflict Demo</h2>
+      </div>
       <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>
-        Hai kỹ sư checkout cùng 1 part → sửa khác nhau → checkin → Hệ thống tự giải quyết xung đột (Özsu §15.5)
+        Hai site checkout cung mot object co cung OID. Source site checkin truoc, dong bo version moi sang target site,
+        sau do target site checkin ban cu de kich hoat OCC conflict resolution dung yeu cau Topic 88.
       </p>
 
-      {/* Progress Bar */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 28, overflowX: 'auto' }}>
-        {STEPS.map((s, i) => {
-          const done   = step > s.id || (step === 5 && s.id === 4);
+      <div style={{ display: 'flex', gap: 0, marginBottom: 24, overflowX: 'auto' }}>
+        {STEPS.map((s, index) => {
+          const done = step > s.id;
           const active = step === s.id;
           return (
-            <div key={s.id} style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 110 }}>
+            <div key={s.id} style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 120 }}>
               <div style={{ flex: 1, textAlign: 'center' }}>
                 <div style={{
-                  width: 30, height: 30, borderRadius: '50%', margin: '0 auto 6px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600,
+                  width: 30,
+                  height: 30,
+                  borderRadius: '50%',
+                  margin: '0 auto 6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 12,
+                  fontWeight: 700,
                   background: done ? '#10b981' : active ? '#3b82f6' : 'rgba(255,255,255,.05)',
-                  color: done || active ? '#fff' : '#475569',
-                  border: `2px solid ${done ? '#10b981' : active ? '#3b82f6' : 'rgba(255,255,255,.1)'}`,
+                  border: `1px solid ${done ? '#10b981' : active ? '#3b82f6' : 'rgba(255,255,255,.12)'}`,
+                  color: done || active ? '#fff' : '#64748b',
                 }}>
-                  {done ? '✓' : s.id}
+                  {done ? 'OK' : s.id}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: active ? 600 : 400, color: active ? '#e2e8f0' : '#475569' }}>
-                  {s.label}
-                </div>
+                <div style={{ fontSize: 11, color: active ? '#e2e8f0' : '#64748b' }}>{s.label}</div>
               </div>
-              {i < STEPS.length - 1 && <div style={{ width: 20, height: 2, background: done ? '#10b981' : 'rgba(255,255,255,.1)' }} />}
+              {index < STEPS.length - 1 && (
+                <div style={{ width: 22, height: 2, background: done ? '#10b981' : 'rgba(255,255,255,.1)' }} />
+              )}
             </div>
           );
         })}
       </div>
 
       {error && (
-        <div style={{ background: '#7f1d1d', color: '#fca5a5', padding: '12px 16px', borderRadius: 8, marginBottom: 20, fontSize: 13, border: '1px solid #991b1b' }}>
-          <strong>Lỗi:</strong> {error}
+        <div style={{ background: '#7f1d1d', color: '#fecaca', padding: '12px 16px', borderRadius: 8, marginBottom: 18, fontSize: 13, border: '1px solid #991b1b' }}>
+          <strong>Loi:</strong> {error}
         </div>
       )}
 
-      {/* Main Panel */}
-      <div style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 12, padding: 20 }}>
-        
-        {/* Step 1 */}
+      <div style={{ background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: 20 }}>
         {step === 1 && (
           <div className="fade-in">
-            <h3 style={{ fontSize: 16, color: '#e2e8f0', marginBottom: 16, textAlign: 'center' }}>Bước 1: Chọn môi trường &amp; Part</h3>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 16 }}>
-              {Object.entries(SITES).map(([k, s]) => (
-                <button key={k} onClick={() => setSelKey(k)} style={{
-                  padding: '8px 16px', borderRadius: 8, background: selKey === k ? s.color : 'transparent',
-                  color: selKey === k ? '#fff' : '#94a3b8', border: `1px solid ${s.color}`, cursor: 'pointer'
-                }}>
-                  {s.name} ({s.strategy})
-                </button>
-              ))}
+            <h3 style={{ fontSize: 16, marginBottom: 16 }}>1. Chon 2 site va object demo</h3>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18 }}>
+              <SitePicker title="Source site" value={sourceKey} onChange={changeSource} />
+              <SitePicker title="Target site conflict resolver" value={targetKey} onChange={changeTarget} exclude={sourceKey} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 20, maxWidth: 600, margin: '0 auto 20px' }}>
-              <div>
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Part</div>
-                <select value={selPart} onChange={e => setSelPart(e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: 6, background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155', fontSize: 12 }}>
-                  <option value="">-- Chọn --</option>
-                  {parts.map(p => <option key={p.part_id} value={p.part_id}>{p.part_id} (v{p.version})</option>)}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#cbd5e1', marginBottom: 14 }}>
+              <input type="checkbox" checked={useFreshPart} onChange={e => { setUseFreshPart(e.target.checked); resetRun(); }} />
+              Tao object demo moi moi lan chay de tranh du lieu cu anh huong ket qua
+            </label>
+
+            {!useFreshPart && (
+              <div style={{ maxWidth: 420, marginBottom: 18 }}>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Source part</div>
+                <select value={selectedPart} onChange={e => setSelectedPart(e.target.value)}
+                  style={{ width: '100%', padding: '9px 10px', borderRadius: 6, background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155', fontSize: 12 }}>
+                  <option value="">-- Chon part tu {sourceSite.name} --</option>
+                  {sourceParts.map(p => <option key={p.part_id} value={p.part_id}>{p.part_id} (v{p.version})</option>)}
                 </select>
               </div>
-              <div>
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Kỹ sư A sửa thành</div>
-                <input value={userAChange} onChange={e => setUserAChange(e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: 6, background: '#0f172a', color: '#60a5fa', border: '1px solid #334155', fontSize: 12, fontFamily: 'monospace' }} />
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Kỹ sư B sửa thành</div>
-                <input value={userBChange} onChange={e => setUserBChange(e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: 6, background: '#0f172a', color: '#a78bfa', border: '1px solid #334155', fontSize: 12, fontFamily: 'monospace' }} />
-              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18 }}>
+              <TextInput label="Source material change" value={sourceMaterial} onChange={setSourceMaterial} color="#60a5fa" />
+              <TextInput label="Target material change" value={targetMaterial} onChange={setTargetMaterial} color="#a78bfa" />
             </div>
 
-            <div style={{ textAlign: 'center' }}>
-              <button onClick={handleCheckout} disabled={!selPart || loading}
-                style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 8, fontWeight: 500, cursor: 'pointer', opacity: (!selPart || loading) ? 0.5 : 1 }}>
-                {loading ? 'Đang Checkout...' : '2 Kỹ sư cùng Checkout →'}
-              </button>
-            </div>
+            <button onClick={prepareCrossSiteCheckout} disabled={loading}
+              style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', opacity: loading ? 0.6 : 1 }}>
+              {loading ? 'Dang chuan bi...' : 'Tao/replicate va checkout tren 2 site'}
+            </button>
           </div>
         )}
 
-        {/* Step 2: Both checked out */}
         {step === 2 && (
           <div className="fade-in">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-              <div style={{ background: 'rgba(59,130,246,.1)', border: '1px solid rgba(59,130,246,.3)', padding: 16, borderRadius: 8 }}>
-                <h4 style={{ color: '#60a5fa', marginBottom: 8 }}>👨‍💻 Kỹ sư A</h4>
-                <p style={{ fontSize: 13, color: '#94a3b8' }}>Đã tải về: <strong>{selPart} v{userAModel?.version}</strong></p>
-                <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                  Sẽ sửa material → <span style={{ color: '#60a5fa', fontFamily: 'monospace' }}>"{userAChange}"</span>
-                </p>
-                <button onClick={handleUserACheckin} disabled={loading} style={{ marginTop: 12, background: '#3b82f6', color: '#fff', padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer' }}>
-                  Sửa &amp; Checkin ngay
-                </button>
-              </div>
-              <div style={{ background: 'rgba(139,92,246,.1)', border: '1px solid rgba(139,92,246,.3)', padding: 16, borderRadius: 8, opacity: 0.6 }}>
-                <h4 style={{ color: '#a78bfa', marginBottom: 8 }}>👨‍💻 Kỹ sư B</h4>
-                <p style={{ fontSize: 13, color: '#94a3b8' }}>Cũng đang giữ: <strong>{selPart} v{userBModel?.version}</strong></p>
-                <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                  Sẽ sửa material → <span style={{ color: '#a78bfa', fontFamily: 'monospace' }}>"{userBChange}"</span>
-                </p>
-                <p style={{ fontSize: 11, color: '#475569', marginTop: 8 }}>(Chờ Kỹ sư A checkin trước)</p>
-              </div>
+            <h3 style={{ fontSize: 16, marginBottom: 16 }}>2. Hai site da checkout cung object</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18 }}>
+              <ModelCard title={`${sourceSite.name} checkout`} model={sourceCheckout} color="#60a5fa" />
+              <ModelCard title={`${targetSite.name} checkout`} model={targetCheckout} color="#a78bfa" />
             </div>
+            <div style={{ fontSize: 13, color: oidMatches ? '#34d399' : '#f87171', marginBottom: 18 }}>
+              OID check: {oidMatches ? 'MATCH - cung mot distributed object' : 'MISMATCH - can kiem tra replication'}
+            </div>
+            <button onClick={sourceCheckin} disabled={loading}
+              style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
+              {loading ? 'Dang checkin...' : `${sourceSite.name} checkin version moi`}
+            </button>
           </div>
         )}
 
-        {/* Step 3: A succeeded, B's turn */}
         {step === 3 && (
           <div className="fade-in">
-            <div style={{ background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
-              <div style={{ color: '#34d399', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CheckCircle size={18} /> Kỹ sư A checkin thành công!
-              </div>
-              {checkinResultA && (
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                  {[
-                    { label: 'Version', value: `v${checkinResultA.version_before} → v${checkinResultA.version_after}` },
-                    { label: 'Branch', value: checkinResultA.branch },
-                    { label: 'SHA-256', value: checkinResultA.checksum_after?.substring(0, 12) + '...' },
-                    { label: 'WAL Entries', value: checkinResultA.wal_entry_count },
-                  ].map(({ label, value }) => (
-                    <div key={label} style={{ background: 'rgba(255,255,255,.05)', borderRadius: 4, padding: '4px 8px' }}>
-                      <div style={{ fontSize: 10, color: '#475569' }}>{label}</div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: '#e2e8f0' }}>{value}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div style={{ background: 'rgba(139,92,246,.1)', border: '1px solid rgba(139,92,246,.3)', padding: 16, borderRadius: 8 }}>
-              <h4 style={{ color: '#a78bfa', marginBottom: 8 }}>👨‍💻 Kỹ sư B — Bây giờ checkin</h4>
-              <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 4 }}>
-                Vẫn đang giữ bản cũ (v{userBModel?.version}). Server đã lên v{checkinResultA?.version_after}.
-              </p>
-              <p style={{ fontSize: 12, color: '#f59e0b', marginBottom: 12 }}>
-                ⚠ base_version ({userBModel?.version}) &lt; current_version ({checkinResultA?.version_after}) → XUNG ĐỘT!
-              </p>
-              <button onClick={handleUserBCheckin} disabled={loading} style={{ background: '#8b5cf6', color: '#fff', padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer' }}>
-                Cố tình Checkin (Tạo Xung đột) 💥
-              </button>
-            </div>
+            <ResultBanner ok text={`${sourceSite.name} da checkin thanh cong tren branch ${sourceResult?.branch}.`} />
+            <MetricGrid items={[
+              ['Part', activePart],
+              ['Version', `v${sourceResult?.version_before} -> v${sourceResult?.version_after}`],
+              ['Source branch', sourceResult?.branch],
+              ['Checksum', `${sourceResult?.checksum_after?.slice(0, 14)}...`],
+            ]} />
+            <button onClick={syncLatestToTarget} disabled={loading}
+              style={{ marginTop: 18, background: '#0f766e', color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
+              {loading ? 'Dang replicate...' : `Replicate v${sourceResult?.version_after} sang ${targetSite.name}`}
+            </button>
           </div>
         )}
 
-        {/* Step 5: Conflict Result */}
+        {step === 4 && (
+          <div className="fade-in">
+            <ResultBanner ok text={`${targetSite.name} da nhan version moi nhung Engineer_Target van giu ban checkout cu.`} />
+            <MetricGrid items={[
+              ['Target current', `v${syncResult?.target_version}`],
+              ['Target old checkout', `v${targetCheckout?.version}`],
+              ['OCC condition', `${targetCheckout?.version} < ${syncResult?.target_version}`],
+              ['Target strategy', targetSite.strategy],
+            ]} />
+            <button onClick={targetCheckinOldCopy} disabled={loading}
+              style={{ marginTop: 18, background: '#7c3aed', color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
+              {loading ? 'Dang tao conflict...' : `${targetSite.name} checkin ban cu de tao conflict`}
+            </button>
+          </div>
+        )}
+
         {step === 5 && (
           <div className="fade-in">
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: '50%', background: 'rgba(245,158,11,.1)', color: '#fbbf24', marginBottom: 12 }}>
-                <AlertTriangle size={28} />
-              </div>
-              <h3 style={{ fontSize: 18, color: '#fbbf24', marginBottom: 4 }}>XUNG ĐỘT PHÁT HIỆN &amp; GIẢI QUYẾT!</h3>
-              <p style={{ fontSize: 13, color: '#94a3b8' }}>Chiến lược: <strong style={{ color: '#e2e8f0' }}>{siteMeta.strategy}</strong></p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, color: targetResult?.is_conflict ? '#fbbf24' : '#f87171' }}>
+              <AlertTriangle size={22} />
+              <h3 style={{ fontSize: 17, margin: 0 }}>
+                {targetResult?.is_conflict ? 'Conflict detected and resolved' : 'No conflict detected'}
+              </h3>
+            </div>
+            <MetricGrid items={[
+              ['Resolver site', targetSite.name],
+              ['Strategy', targetResult?.conflict_strategy || targetSite.strategy],
+              ['Version', `v${targetResult?.version_before} -> v${targetResult?.version_after}`],
+              ['Branch', targetResult?.branch],
+            ]} />
+
+            <div style={{ marginTop: 16, background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, padding: 14, fontSize: 13, color: '#94a3b8', lineHeight: 1.7 }}>
+              <strong style={{ color: '#34d399' }}>Branching:</strong> target site tao branch rieng cho ban checkin muon.
+              Du lieu cua source va target deu duoc giu lai, dung yeu cau Topic 88 va khong overwrite im lang.
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-              {/* User A Result */}
-              <div style={{ background: 'rgba(59,130,246,.05)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 8, padding: 16 }}>
-                <h4 style={{ fontSize: 13, color: '#60a5fa', marginBottom: 10 }}>Kỹ sư A — {checkinResultA?.message?.includes('XUNG DOT') ? 'Bị ghi đè' : 'Thành công'}</h4>
-                {checkinResultA && (
-                  <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.8 }}>
-                    Version: v{checkinResultA.version_before} → <strong>v{checkinResultA.version_after}</strong><br/>
-                    Branch: <span style={{ color: '#60a5fa' }}>{checkinResultA.branch}</span><br/>
-                    Material: <code style={{ color: '#60a5fa' }}>{userAChange}</code><br/>
-                    Checksum: <code style={{ fontSize: 10 }}>{checkinResultA.checksum_after?.substring(0, 16)}...</code>
-                  </div>
-                )}
-              </div>
-
-              {/* User B Result */}
-              <div style={{ background: 'rgba(139,92,246,.05)', border: '1px solid rgba(139,92,246,.2)', borderRadius: 8, padding: 16 }}>
-                <h4 style={{ fontSize: 13, color: '#a78bfa', marginBottom: 10 }}>Kỹ sư B — {checkinResultB?.is_conflict ? '⚡ Conflict Resolved' : 'Thành công'}</h4>
-                {checkinResultB && (
-                  <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.8 }}>
-                    Version: v{checkinResultB.version_before} → <strong>v{checkinResultB.version_after}</strong><br/>
-                    Branch: <span style={{ color: '#a78bfa' }}>{checkinResultB.branch}</span><br/>
-                    Material: <code style={{ color: '#a78bfa' }}>{userBChange}</code><br/>
-                    Checksum: <code style={{ fontSize: 10 }}>{checkinResultB.checksum_after?.substring(0, 16)}...</code>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Resolution Analysis */}
-            <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, padding: 16, marginBottom: 20 }}>
-              <h4 style={{ fontSize: 13, color: '#e2e8f0', marginBottom: 12 }}>📊 Phân tích kết quả</h4>
-              <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.8 }}>
-                {siteMeta.strategy.toLowerCase() === 'branching' ? (
-                  <>
-                    <strong style={{ color: '#10b981' }}>Branching Strategy:</strong> Server tách bản của Kỹ sư B thành nhánh riêng.<br/>
-                    • Kỹ sư A → branch: <code style={{ color: '#60a5fa' }}>{checkinResultA?.branch}</code> (v{checkinResultA?.version_after})<br/>
-                    • Kỹ sư B → branch: <code style={{ color: '#a78bfa' }}>{checkinResultB?.branch}</code> (v{checkinResultB?.version_after})<br/>
-                    • <strong style={{ color: '#10b981' }}>Không mất dữ liệu</strong> — cả hai bản đều được lưu. Có thể merge sau.
-                  </>
-                ) : (
-                  <>
-                    <strong style={{ color: '#f59e0b' }}>Timestamp (Last-Write-Wins) Strategy:</strong> Server cho phép checkin sau ghi đè.<br/>
-                    • Kỹ sư A → v{checkinResultA?.version_after} (main) — <span style={{ color: '#f59e0b' }}>có thể bị ghi đè</span><br/>
-                    • Kỹ sư B → v{checkinResultB?.version_after} (main) — <span style={{ color: '#10b981' }}>bản mới nhất</span><br/>
-                    • <strong style={{ color: '#f59e0b' }}>Cảnh báo:</strong> Thay đổi của Kỹ sư A có thể bị mất.
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Version Tree */}
             {versionTree.length > 0 && (
-              <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, padding: 16, marginBottom: 20 }}>
-                <h4 style={{ fontSize: 13, color: '#e2e8f0', marginBottom: 12 }}>🌳 Version Tree — {selPart}</h4>
+              <div style={{ marginTop: 16 }}>
+                <h4 style={{ fontSize: 13, marginBottom: 10 }}>Version tree tai {targetSite.name}</h4>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {versionTree.map((v, i) => (
-                    <div key={i} style={{
-                      padding: '6px 12px', borderRadius: 6, fontSize: 11,
+                  {versionTree.map((v, index) => (
+                    <div key={`${v.version}-${v.branch}-${index}`} style={{
+                      padding: '6px 10px',
+                      borderRadius: 6,
+                      fontSize: 11,
                       background: v.branch === 'main' ? 'rgba(16,185,129,.1)' : 'rgba(245,158,11,.1)',
                       border: `1px solid ${v.branch === 'main' ? 'rgba(16,185,129,.3)' : 'rgba(245,158,11,.3)'}`,
                       color: v.branch === 'main' ? '#34d399' : '#fbbf24',
                     }}>
-                      v{v.version} · {v.branch}
+                      v{v.version} | {v.branch}
                     </div>
                   ))}
-                </div>
-                <div style={{ fontSize: 11, color: '#475569', marginTop: 8 }}>
-                  Branches: {[...new Set(versionTree.map(v => v.branch))].join(', ')}
                 </div>
               </div>
             )}
 
-            {/* Server Response */}
-            <details style={{ marginBottom: 16 }}>
-              <summary style={{ fontSize: 12, color: '#64748b', cursor: 'pointer' }}>
-                📄 Raw Server Response (B)
-              </summary>
-              <pre style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 6, padding: 12, fontSize: 11, color: '#94a3b8', marginTop: 8, overflow: 'auto' }}>
-                {JSON.stringify(checkinResultB, null, 2)}
+            <details style={{ marginTop: 16 }}>
+              <summary style={{ fontSize: 12, color: '#64748b', cursor: 'pointer' }}>Raw target checkin response</summary>
+              <pre style={{ background: '#020617', border: '1px solid #1e293b', borderRadius: 6, padding: 12, color: '#94a3b8', fontSize: 11, overflow: 'auto' }}>
+                {JSON.stringify(targetResult, null, 2)}
               </pre>
             </details>
 
-            <button onClick={resetDemo} style={{ background: 'transparent', color: '#94a3b8', border: '1px solid #475569', padding: '8px 20px', borderRadius: 8, cursor: 'pointer' }}>
-              Thử lại từ đầu ↻
+            <button onClick={resetRun}
+              style={{ marginTop: 16, background: 'transparent', color: '#94a3b8', border: '1px solid #475569', padding: '8px 16px', borderRadius: 8, cursor: 'pointer' }}>
+              Chay lai demo
             </button>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function SitePicker({ title, value, onChange, exclude }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>{title}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {Object.entries(SITES).map(([key, site]) => {
+          const disabled = exclude === key;
+          return (
+            <button key={key} disabled={disabled} onClick={() => onChange(key)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 8,
+                background: value === key ? site.color : 'transparent',
+                color: value === key ? '#fff' : disabled ? '#475569' : '#94a3b8',
+                border: `1px solid ${disabled ? '#334155' : site.color}`,
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                opacity: disabled ? 0.45 : 1,
+              }}>
+              {site.name} | {site.strategy}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function TextInput({ label, value, onChange, color }) {
+  return (
+    <label style={{ display: 'block' }}>
+      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>{label}</div>
+      <input value={value} onChange={e => onChange(e.target.value)}
+        style={{ width: '100%', padding: '9px 10px', borderRadius: 6, background: '#0f172a', color, border: '1px solid #334155', fontSize: 12, fontFamily: 'monospace' }} />
+    </label>
+  );
+}
+
+function ModelCard({ title, model, color }) {
+  return (
+    <div style={{ background: 'rgba(15,23,42,.72)', border: `1px solid ${color}55`, borderRadius: 8, padding: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color, fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+        <GitPullRequest size={16} /> {title}
+      </div>
+      <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.8 }}>
+        Part: <strong style={{ color: '#e2e8f0' }}>{model?.part_id}</strong><br />
+        Version: <strong style={{ color: '#e2e8f0' }}>v{model?.version}</strong><br />
+        Branch: <code>{model?.branch}</code><br />
+        OID: <code style={{ fontSize: 10 }}>{model?.oid}</code>
+      </div>
+    </div>
+  );
+}
+
+function ResultBanner({ ok, text }) {
+  return (
+    <div style={{ display: 'flex', gap: 10, alignItems: 'center', background: ok ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)', border: `1px solid ${ok ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)'}`, borderRadius: 8, padding: 14, marginBottom: 14 }}>
+      {ok ? <CheckCircle size={18} color="#34d399" /> : <AlertTriangle size={18} color="#f87171" />}
+      <span style={{ fontSize: 13, color: ok ? '#bbf7d0' : '#fecaca' }}>{text}</span>
+    </div>
+  );
+}
+
+function MetricGrid({ items }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 }}>
+      {items.map(([label, value]) => (
+        <div key={label} style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 6, padding: '8px 10px', minWidth: 0 }}>
+          <div style={{ color: '#64748b', fontSize: 10, marginBottom: 4 }}>{label}</div>
+          <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+        </div>
+      ))}
     </div>
   );
 }

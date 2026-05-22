@@ -7,6 +7,7 @@
   "parts": [
     {
       "part_id": "CHS-001",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -1081,8 +1082,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 439.83
         }
       },
@@ -1092,6 +1095,7 @@
     },
     {
       "part_id": "CHS-002",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -2166,8 +2170,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 346.78
         }
       },
@@ -2177,6 +2183,7 @@
     },
     {
       "part_id": "CHS-003",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -3251,8 +3258,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 423.15
         }
       },
@@ -3262,6 +3271,7 @@
     },
     {
       "part_id": "CHS-004",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -4336,8 +4346,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 284.6
         }
       },
@@ -4347,6 +4359,7 @@
     },
     {
       "part_id": "CHS-005",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -5421,8 +5434,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 224.08
         }
       },
@@ -5432,6 +5447,7 @@
     },
     {
       "part_id": "CHS-006",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -6506,8 +6522,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 234.1
         }
       },
@@ -6517,6 +6535,7 @@
     },
     {
       "part_id": "CHS-007",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -7591,8 +7610,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 219.69
         }
       },
@@ -7602,6 +7623,7 @@
     },
     {
       "part_id": "CHS-008",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -8676,8 +8698,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 238.18
         }
       },
@@ -8687,6 +8711,7 @@
     },
     {
       "part_id": "CHS-009",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -9761,8 +9786,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 330.18
         }
       },
@@ -9772,6 +9799,7 @@
     },
     {
       "part_id": "CHS-010",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -10846,8 +10874,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 477.97
         }
       },
@@ -10857,6 +10887,7 @@
     },
     {
       "part_id": "CHS-011",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -11931,8 +11962,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 433.44
         }
       },
@@ -11942,6 +11975,7 @@
     },
     {
       "part_id": "CHS-012",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -13016,8 +13050,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 205.45
         }
       },
@@ -13027,6 +13063,7 @@
     },
     {
       "part_id": "CHS-013",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -14101,8 +14138,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 267.72
         }
       },
@@ -14112,6 +14151,7 @@
     },
     {
       "part_id": "CHS-014",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -15186,8 +15226,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 377.77
         }
       },
@@ -15197,6 +15239,7 @@
     },
     {
       "part_id": "CHS-015",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -16271,8 +16314,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 367.9
         }
       },
@@ -16282,6 +16327,7 @@
     },
     {
       "part_id": "CHS-016",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -17356,8 +17402,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 455.73
         }
       },
@@ -17367,6 +17415,7 @@
     },
     {
       "part_id": "CHS-017",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -18441,8 +18490,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 249.86
         }
       },
@@ -18452,6 +18503,7 @@
     },
     {
       "part_id": "CHS-018",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -19526,8 +19578,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 377.56
         }
       },
@@ -19537,6 +19591,7 @@
     },
     {
       "part_id": "CHS-019",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -20611,8 +20666,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 273.02
         }
       },
@@ -20622,6 +20679,7 @@
     },
     {
       "part_id": "CHS-020",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -21696,8 +21754,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 459.19
         }
       },
@@ -21707,6 +21767,7 @@
     },
     {
       "part_id": "CHS-021",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -22781,8 +22842,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 209.05
         }
       },
@@ -22792,6 +22855,7 @@
     },
     {
       "part_id": "CHS-022",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -23866,8 +23930,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 480.67
         }
       },
@@ -23877,6 +23943,7 @@
     },
     {
       "part_id": "CHS-023",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -24951,8 +25018,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 369.91
         }
       },
@@ -24962,6 +25031,7 @@
     },
     {
       "part_id": "CHS-024",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -26036,8 +26106,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 341.24
         }
       },
@@ -26047,6 +26119,7 @@
     },
     {
       "part_id": "CHS-025",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -27121,8 +27194,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 294.93
         }
       },
@@ -27132,6 +27207,7 @@
     },
     {
       "part_id": "CHS-026",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -28206,8 +28282,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 353.84
         }
       },
@@ -28217,6 +28295,7 @@
     },
     {
       "part_id": "CHS-027",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -29291,8 +29370,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 361.13
         }
       },
@@ -29302,6 +29383,7 @@
     },
     {
       "part_id": "CHS-028",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -30376,8 +30458,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 432.39
         }
       },
@@ -30387,6 +30471,7 @@
     },
     {
       "part_id": "CHS-029",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -31461,8 +31546,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 233.75
         }
       },
@@ -31472,6 +31559,7 @@
     },
     {
       "part_id": "CHS-030",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -32546,8 +32634,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 499.34
         }
       },
@@ -32557,6 +32647,7 @@
     },
     {
       "part_id": "CHS-031",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -33631,8 +33722,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 331.88
         }
       },
@@ -33642,6 +33735,7 @@
     },
     {
       "part_id": "CHS-032",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -34716,8 +34810,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 431.17
         }
       },
@@ -34727,6 +34823,7 @@
     },
     {
       "part_id": "CHS-033",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -35801,8 +35898,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 347.22
         }
       },
@@ -35812,6 +35911,7 @@
     },
     {
       "part_id": "CHS-034",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -36886,8 +36986,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 460.19
         }
       },
@@ -36897,6 +36999,7 @@
     },
     {
       "part_id": "CHS-035",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -37971,8 +38074,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 222.39
         }
       },
@@ -37982,6 +38087,7 @@
     },
     {
       "part_id": "CHS-036",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -39056,8 +39162,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 283.2
         }
       },
@@ -39067,6 +39175,7 @@
     },
     {
       "part_id": "CHS-037",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -40141,8 +40250,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 272.05
         }
       },
@@ -40152,6 +40263,7 @@
     },
     {
       "part_id": "CHS-038",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -41226,8 +41338,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 281.81
         }
       },
@@ -41237,6 +41351,7 @@
     },
     {
       "part_id": "CHS-039",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -42311,8 +42426,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 497.81
         }
       },
@@ -42322,6 +42439,7 @@
     },
     {
       "part_id": "CHS-040",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -43396,8 +43514,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 238.61
         }
       },
@@ -43407,6 +43527,7 @@
     },
     {
       "part_id": "CHS-041",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -44481,8 +44602,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 366.33
         }
       },
@@ -44492,6 +44615,7 @@
     },
     {
       "part_id": "CHS-042",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -45566,8 +45690,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 479.31
         }
       },
@@ -45577,6 +45703,7 @@
     },
     {
       "part_id": "CHS-043",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -46651,8 +46778,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 208.17
         }
       },
@@ -46662,6 +46791,7 @@
     },
     {
       "part_id": "CHS-044",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -47736,8 +47866,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 262.4
         }
       },
@@ -47747,6 +47879,7 @@
     },
     {
       "part_id": "CHS-045",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -48821,8 +48954,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 318.69
         }
       },
@@ -48832,6 +48967,7 @@
     },
     {
       "part_id": "CHS-046",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -49906,8 +50042,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 333.83
         }
       },
@@ -49917,6 +50055,7 @@
     },
     {
       "part_id": "CHS-047",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -50991,8 +51130,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 389.21
         }
       },
@@ -51002,6 +51143,7 @@
     },
     {
       "part_id": "CHS-048",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -52076,8 +52218,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 256.03
         }
       },
@@ -52087,6 +52231,7 @@
     },
     {
       "part_id": "CHS-049",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -53161,8 +53306,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 376.33
         }
       },
@@ -53172,6 +53319,7 @@
     },
     {
       "part_id": "CHS-050",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -54246,8 +54394,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 279.46
         }
       },
@@ -54257,6 +54407,7 @@
     },
     {
       "part_id": "CHS-051",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -55331,8 +55482,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 426.77
         }
       },
@@ -55342,6 +55495,7 @@
     },
     {
       "part_id": "CHS-052",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -56416,8 +56570,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 335.41
         }
       },
@@ -56427,6 +56583,7 @@
     },
     {
       "part_id": "CHS-053",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -57501,8 +57658,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 488.64
         }
       },
@@ -57512,6 +57671,7 @@
     },
     {
       "part_id": "CHS-054",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -58586,8 +58746,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 342.7
         }
       },
@@ -58597,6 +58759,7 @@
     },
     {
       "part_id": "CHS-055",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -59671,8 +59834,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 394.04
         }
       },
@@ -59682,6 +59847,7 @@
     },
     {
       "part_id": "CHS-056",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -60756,8 +60922,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 250.16
         }
       },
@@ -60767,6 +60935,7 @@
     },
     {
       "part_id": "CHS-057",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -61841,8 +62010,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 261.87
         }
       },
@@ -61852,6 +62023,7 @@
     },
     {
       "part_id": "CHS-058",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -62926,8 +63098,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 367.32
         }
       },
@@ -62937,6 +63111,7 @@
     },
     {
       "part_id": "CHS-059",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -64011,8 +64186,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 425.23
         }
       },
@@ -64022,6 +64199,7 @@
     },
     {
       "part_id": "CHS-060",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -65096,8 +65274,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 349.03
         }
       },
@@ -65107,6 +65287,7 @@
     },
     {
       "part_id": "CHS-061",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -66181,8 +66362,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 210.66
         }
       },
@@ -66192,6 +66375,7 @@
     },
     {
       "part_id": "CHS-062",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -67266,8 +67450,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 369.57
         }
       },
@@ -67277,6 +67463,7 @@
     },
     {
       "part_id": "CHS-063",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -68351,8 +68538,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 265.75
         }
       },
@@ -68362,6 +68551,7 @@
     },
     {
       "part_id": "CHS-064",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -69436,8 +69626,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 246.22
         }
       },
@@ -69447,6 +69639,7 @@
     },
     {
       "part_id": "CHS-065",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -70521,8 +70714,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 374.87
         }
       },
@@ -70532,6 +70727,7 @@
     },
     {
       "part_id": "CHS-066",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -71606,8 +71802,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 458.24
         }
       },
@@ -71617,6 +71815,7 @@
     },
     {
       "part_id": "CHS-067",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -72691,8 +72890,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 496.32
         }
       },
@@ -72702,6 +72903,7 @@
     },
     {
       "part_id": "CHS-068",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -73776,8 +73978,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 496.14
         }
       },
@@ -73787,6 +73991,7 @@
     },
     {
       "part_id": "CHS-069",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -74861,8 +75066,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 486.05
         }
       },
@@ -74872,6 +75079,7 @@
     },
     {
       "part_id": "CHS-070",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -75946,8 +76154,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 244.8
         }
       },
@@ -75957,6 +76167,7 @@
     },
     {
       "part_id": "CHS-071",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -77031,8 +77242,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 495.03
         }
       },
@@ -77042,6 +77255,7 @@
     },
     {
       "part_id": "CHS-072",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -78116,8 +78330,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 449.0
         }
       },
@@ -78127,6 +78343,7 @@
     },
     {
       "part_id": "CHS-073",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -79201,8 +79418,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 391.57
         }
       },
@@ -79212,6 +79431,7 @@
     },
     {
       "part_id": "CHS-074",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -80286,8 +80506,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 261.21
         }
       },
@@ -80297,6 +80519,7 @@
     },
     {
       "part_id": "CHS-075",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -81371,8 +81594,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 333.86
         }
       },
@@ -81382,6 +81607,7 @@
     },
     {
       "part_id": "CHS-076",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -82456,8 +82682,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 465.01
         }
       },
@@ -82467,6 +82695,7 @@
     },
     {
       "part_id": "CHS-077",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -83541,8 +83770,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 202.4
         }
       },
@@ -83552,6 +83783,7 @@
     },
     {
       "part_id": "CHS-078",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -84626,8 +84858,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 356.77
         }
       },
@@ -84637,6 +84871,7 @@
     },
     {
       "part_id": "CHS-079",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -85711,8 +85946,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 385.61
         }
       },
@@ -85722,6 +85959,7 @@
     },
     {
       "part_id": "CHS-080",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -86796,8 +87034,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 473.17
         }
       },
@@ -86807,6 +87047,7 @@
     },
     {
       "part_id": "CHS-081",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -87881,8 +88122,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 327.14
         }
       },
@@ -87892,6 +88135,7 @@
     },
     {
       "part_id": "CHS-082",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -88966,8 +89210,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 421.92
         }
       },
@@ -88977,6 +89223,7 @@
     },
     {
       "part_id": "CHS-083",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -90051,8 +90298,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 359.19
         }
       },
@@ -90062,6 +90311,7 @@
     },
     {
       "part_id": "CHS-084",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -91136,8 +91386,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 485.59
         }
       },
@@ -91147,6 +91399,7 @@
     },
     {
       "part_id": "CHS-085",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -92221,8 +92474,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 334.06
         }
       },
@@ -92232,6 +92487,7 @@
     },
     {
       "part_id": "CHS-086",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -93306,8 +93562,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 447.96
         }
       },
@@ -93317,6 +93575,7 @@
     },
     {
       "part_id": "CHS-087",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -94391,8 +94650,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 309.44
         }
       },
@@ -94402,6 +94663,7 @@
     },
     {
       "part_id": "CHS-088",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -95476,8 +95738,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 276.65
         }
       },
@@ -95487,6 +95751,7 @@
     },
     {
       "part_id": "CHS-089",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -96561,8 +96826,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 443.67
         }
       },
@@ -96572,6 +96839,7 @@
     },
     {
       "part_id": "CHS-090",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -97646,8 +97914,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 399.15
         }
       },
@@ -97657,6 +97927,7 @@
     },
     {
       "part_id": "CHS-091",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -98731,8 +99002,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 463.63
         }
       },
@@ -98742,6 +99015,7 @@
     },
     {
       "part_id": "CHS-092",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -99816,8 +100090,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 438.09
         }
       },
@@ -99827,6 +100103,7 @@
     },
     {
       "part_id": "CHS-093",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -100901,8 +101178,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 409.14
         }
       },
@@ -100912,6 +101191,7 @@
     },
     {
       "part_id": "CHS-094",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -101986,8 +102266,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 285.47
         }
       },
@@ -101997,6 +102279,7 @@
     },
     {
       "part_id": "CHS-095",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -103071,8 +103354,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 225.95
         }
       },
@@ -103082,6 +103367,7 @@
     },
     {
       "part_id": "CHS-096",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -104156,8 +104442,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 424.25
         }
       },
@@ -104167,6 +104455,7 @@
     },
     {
       "part_id": "CHS-097",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -105241,8 +105530,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 456.21
         }
       },
@@ -105252,6 +105543,7 @@
     },
     {
       "part_id": "CHS-098",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -106326,8 +106618,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 475.66
         }
       },
@@ -106337,6 +106631,7 @@
     },
     {
       "part_id": "CHS-099",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -107411,8 +107706,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 384.83
         }
       },
@@ -107422,6 +107719,7 @@
     },
     {
       "part_id": "CHS-100",
+      "category": "chassis",
       "geometry": {
         "type": "Polygon",
         "vertices": [
@@ -108496,8 +108794,10 @@
           ]
         ],
         "properties": {
+          "category": "chassis",
           "material": "steel",
           "tolerance": 0.01,
+          "tolerance_mm": 0.01,
           "weight_kg": 254.83
         }
       },

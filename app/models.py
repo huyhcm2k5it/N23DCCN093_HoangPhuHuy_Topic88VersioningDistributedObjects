@@ -80,8 +80,8 @@ class Geometry:
 class GeometrySchema(Schema):
     type       = fields.Str(load_default="Polygon", dump_default="Polygon")
     vertices   = fields.List(fields.Dict(),            required=True)
-    edges      = fields.List(fields.List(fields.Int()), required=True)
-    faces      = fields.List(fields.List(fields.Int()), required=True)
+    edges      = fields.List(fields.Raw(), required=True)
+    faces      = fields.List(fields.Raw(), required=True)
     properties = fields.Dict(load_default={}, dump_default={})
 
     class Meta:
@@ -251,13 +251,14 @@ class Delta:
     """
 
     def __init__(self, from_version, to_version, part_id, changes,
-                 timestamp=None, author_site=""):
+                 timestamp=None, author_site="", branch="main"):
         self.from_version = from_version
         self.to_version   = to_version
         self.part_id      = part_id
         self.changes      = changes
         self.timestamp    = timestamp or datetime.now().isoformat()
         self.author_site  = author_site
+        self.branch       = branch or "main"
 
     def to_dict(self):
         return {
@@ -267,6 +268,7 @@ class Delta:
             "changes":      self.changes,
             "timestamp":    self.timestamp,
             "author_site":  self.author_site,
+            "branch":       self.branch,
         }
 
     def size_bytes(self):
@@ -295,6 +297,7 @@ class Delta:
             part_id=old_model.part_id,
             changes=changes,
             author_site=author_site,
+            branch=new_model.branch or "main",
         )
 
     def apply(self, model):
@@ -325,6 +328,7 @@ class DeltaSchema(Schema):
     changes      = fields.Dict(required=True)
     timestamp    = fields.Str(load_default=None, dump_default=None, allow_none=True)
     author_site  = fields.Str(load_default="",   dump_default="")
+    branch       = fields.Str(load_default="main", dump_default="main")
 
     @post_load
     def make_delta(self, data, **kwargs):

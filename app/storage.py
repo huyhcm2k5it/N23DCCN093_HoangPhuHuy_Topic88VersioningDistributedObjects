@@ -23,6 +23,8 @@ import sqlite3
 import json
 import os
 import threading
+import hashlib
+from datetime import datetime
 from .models import CADModel, Delta, Geometry
 
 
@@ -68,15 +70,17 @@ CREATE TABLE IF NOT EXISTS bases (
 -- PK chong insert trung lap
 CREATE TABLE IF NOT EXISTS deltas (
     part_id      TEXT    NOT NULL,
+    branch       TEXT    NOT NULL DEFAULT 'main',
     from_version INTEGER NOT NULL,
     to_version   INTEGER NOT NULL,
     changes      TEXT    NOT NULL,
     timestamp    TEXT,
     author_site  TEXT    DEFAULT '',
-    PRIMARY KEY (part_id, from_version, to_version)
+    PRIMARY KEY (part_id, branch, from_version, to_version)
 );
 
 CREATE INDEX IF NOT EXISTS idx_deltas_part ON deltas(part_id);
+CREATE INDEX IF NOT EXISTS idx_deltas_branch ON deltas(part_id, branch);
 
 -- Bang checkouts: persist trang thai checkout (Özsu §15.5 Optimistic CC)
 -- Khong bi mat khi server restart
@@ -88,6 +92,48 @@ CREATE TABLE IF NOT EXISTS checkouts (
     model_json    TEXT    NOT NULL,
     PRIMARY KEY (part_id, user)
 );
+
+-- Bang replication_outbox: durable queue cho asynchronous replication
+-- Source ghi outbox truoc khi gui qua mang, nen disconnect/timeout khong lam mat request
+CREATE TABLE IF NOT EXISTS replication_outbox (
+    op_id         TEXT    PRIMARY KEY,
+    source_site   TEXT    NOT NULL,
+    target_site   TEXT    NOT NULL,
+    part_id       TEXT    NOT NULL,
+    oid           TEXT,
+    version       INTEGER NOT NULL,
+    branch        TEXT    NOT NULL DEFAULT 'main',
+    payload_json  TEXT    NOT NULL,
+    status        TEXT    NOT NULL DEFAULT 'PENDING',
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    last_error    TEXT,
+    next_retry_at TEXT,
+    created_at    TEXT,
+    updated_at    TEXT,
+    acked_at      TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_outbox_status ON replication_outbox(status);
+CREATE INDEX IF NOT EXISTS idx_outbox_target ON replication_outbox(target_site, status);
+
+-- Bang replication_inbox: dedupe incoming op_id tai target site
+-- Dam bao replay cung op_id khong tao side-effect moi
+CREATE TABLE IF NOT EXISTS replication_inbox (
+    op_id         TEXT    PRIMARY KEY,
+    request_hash  TEXT    NOT NULL,
+    source_site   TEXT    NOT NULL,
+    part_id       TEXT    NOT NULL,
+    oid           TEXT,
+    version       INTEGER,
+    branch        TEXT    NOT NULL DEFAULT 'main',
+    checksum      TEXT,
+    status        TEXT    NOT NULL DEFAULT 'PROCESSED',
+    processed_at  TEXT,
+    stored_response_json TEXT,
+    stored_response_hash TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_inbox_source ON replication_inbox(source_site, processed_at);
 """
 
 
@@ -125,11 +171,45 @@ def _get_conn(site_id):
             except Exception:
                 pass
 
+            try:
+                cursor = conn.execute("PRAGMA table_info(deltas)")
+                delta_columns = [row[1] for row in cursor.fetchall()]
+                if delta_columns and "branch" not in delta_columns:
+                    conn.execute("DROP TABLE IF EXISTS deltas")
+                    conn.commit()
+            except Exception:
+                pass
+
             conn.executescript(_SCHEMA_SQL)
+            _migrate_replication_tables(conn)
             conn.commit()
             _initialized_dbs.add(site_id)
 
     return conn
+
+
+def _column_exists(conn, table_name, column_name):
+    row = conn.execute(
+        f"PRAGMA table_info({table_name})"
+    ).fetchall()
+    return any(col[1] == column_name for col in row)
+
+
+def _add_column_if_missing(conn, table_name, column_def):
+    column_name = column_def.split()[0]
+    if not _column_exists(conn, table_name, column_name):
+        conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_def}")
+
+
+def _migrate_replication_tables(conn):
+    """
+    Backward-compatible migration cho outbox/inbox schema.
+    """
+    _add_column_if_missing(conn, "replication_outbox", "next_retry_at TEXT")
+
+    _add_column_if_missing(conn, "replication_inbox", "request_hash TEXT DEFAULT ''")
+    _add_column_if_missing(conn, "replication_inbox", "stored_response_json TEXT")
+    _add_column_if_missing(conn, "replication_inbox", "stored_response_hash TEXT")
 
 
 # ══════════════════════════════════════════════════════════
@@ -217,6 +297,20 @@ class SnapshotStore:
                 return self._row_to_model(row)
         return None
 
+    def get_exact(self, part_id, version, branch="main"):
+        """Lay dung snapshot theo (part_id, version, branch), khong fallback sang branch khac."""
+        with _get_conn(self.site_id) as conn:
+            row = conn.execute(
+                """SELECT part_id, version, branch, oid, site_origin,
+                          created_at, modified_at, locked_by, geometry
+                   FROM snapshots
+                   WHERE part_id=? AND version=? AND branch=?""",
+                (part_id, version, branch or "main")
+            ).fetchone()
+            if row:
+                return self._row_to_model(row)
+        return None
+
     def get_latest(self, part_id, branch="main"):
         """Lay phien ban moi nhat tren branch cu the (mac dinh main)."""
         with _get_conn(self.site_id) as conn:
@@ -264,6 +358,28 @@ class SnapshotStore:
                 "SELECT DISTINCT part_id FROM snapshots ORDER BY part_id"
             ).fetchall()
         return [r[0] for r in rows]
+
+    def get_part_id_by_oid(self, oid):
+        """Tra ve part_id tu OID bat bien."""
+        with _get_conn(self.site_id) as conn:
+            row = conn.execute(
+                """SELECT part_id
+                   FROM snapshots
+                   WHERE oid=?
+                   ORDER BY version DESC
+                   LIMIT 1""",
+                (oid,),
+            ).fetchone()
+            if row:
+                return row[0]
+            row = conn.execute(
+                """SELECT part_id
+                   FROM bases
+                   WHERE oid=?
+                   LIMIT 1""",
+                (oid,),
+            ).fetchone()
+            return row[0] if row else None
 
     def total_storage_bytes(self):
         """Tinh tong dung luong luu tru (bytes) cua toan bo snapshots."""
@@ -330,10 +446,11 @@ class DeltaStore:
         with _get_conn(self.site_id) as conn:
             conn.execute(
                 """INSERT OR REPLACE INTO deltas
-                   (part_id, from_version, to_version, changes, timestamp, author_site)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
+                   (part_id, branch, from_version, to_version, changes, timestamp, author_site)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
                     delta.part_id,
+                    delta.branch or "main",
                     delta.from_version,
                     delta.to_version,
                     changes_json,
@@ -346,17 +463,46 @@ class DeltaStore:
 
     def _load_delta_from_row(self, row):
         """Chuyen 1 row tu bang deltas thanh Delta object."""
-        # row order: part_id, from_version, to_version, changes, timestamp, author_site
+        # row order: part_id, branch, from_version, to_version, changes, timestamp, author_site
         return Delta(
             part_id=row[0],
-            from_version=row[1],
-            to_version=row[2],
-            changes=json.loads(row[3]),
-            timestamp=row[4],
-            author_site=row[5] or "",
+            branch=row[1] or "main",
+            from_version=row[2],
+            to_version=row[3],
+            changes=json.loads(row[4]),
+            timestamp=row[5],
+            author_site=row[6] or "",
         )
 
-    def get(self, part_id, version):
+    def _delta_rows_for_branch(self, conn, part_id, base_version, branch):
+        """Load delta chain cho main hoac cho branch phu kem prefix main."""
+        target_branch = branch or "main"
+        main_rows = conn.execute(
+            """SELECT part_id, branch, from_version, to_version, changes, timestamp, author_site
+               FROM deltas
+               WHERE part_id=? AND branch='main' AND from_version >= ?
+               ORDER BY from_version ASC""",
+            (part_id, base_version)
+        ).fetchall()
+
+        if target_branch == "main":
+            return main_rows
+
+        branch_rows = conn.execute(
+            """SELECT part_id, branch, from_version, to_version, changes, timestamp, author_site
+               FROM deltas
+               WHERE part_id=? AND branch=? AND from_version >= ?
+               ORDER BY from_version ASC""",
+            (part_id, target_branch, base_version)
+        ).fetchall()
+        if not branch_rows:
+            return []
+
+        branch_start = branch_rows[0][2]
+        prefix_rows = [r for r in main_rows if r[2] < branch_start]
+        return prefix_rows + branch_rows
+
+    def get(self, part_id, version, branch="main"):
         """
         Lay phien ban bang cach rehydrate tu base + delta chain.
         [S4] Logic dung: lay base → apply delta(base→base+1) → delta(base+1→base+2) → ... → version
@@ -377,15 +523,7 @@ class DeltaStore:
             if version == base.version:
                 return base
 
-            # Lay chuoi delta lien tuc tu base.version tro di
-            # [S4] ORDER BY from_version ASC de dam bao apply dung thu tu
-            delta_rows = conn.execute(
-                """SELECT part_id, from_version, to_version, changes, timestamp, author_site
-                   FROM deltas
-                   WHERE part_id=? AND from_version >= ?
-                   ORDER BY from_version ASC""",
-                (part_id, base.version)
-            ).fetchall()
+            delta_rows = self._delta_rows_for_branch(conn, part_id, base.version, branch)
 
         # Apply tuan tu: base → v2 → v3 → ... → target version
         model = base
@@ -409,7 +547,7 @@ class DeltaStore:
 
         return model if model.version == version else None
 
-    def get_latest(self, part_id):
+    def get_latest(self, part_id, branch="main"):
         """Lay phien ban moi nhat bang cach rehydrate toan bo chuoi delta."""
         with _get_conn(self.site_id) as conn:
             base_row = conn.execute(
@@ -422,13 +560,7 @@ class DeltaStore:
 
             base = self._base_to_model(base_row)
 
-            delta_rows = conn.execute(
-                """SELECT part_id, from_version, to_version, changes, timestamp, author_site
-                   FROM deltas
-                   WHERE part_id=? AND from_version >= ?
-                   ORDER BY from_version ASC""",
-                (part_id, base.version)
-            ).fetchall()
+            delta_rows = self._delta_rows_for_branch(conn, part_id, base.version, branch)
 
         model = base
         for row in delta_rows:
@@ -453,7 +585,7 @@ class DeltaStore:
             ).fetchone()[0] or 0
             return base_size + delta_size
 
-    def rehydration_cost(self, part_id, version):
+    def rehydration_cost(self, part_id, version, branch="main"):
         """Dem so luong delta can ap dung de dat den version nay (= k trong O(k))."""
         with _get_conn(self.site_id) as conn:
             base_row = conn.execute(
@@ -465,12 +597,102 @@ class DeltaStore:
             base_version = base_row[0]
             if version <= base_version:
                 return 0
+            target_branch = branch or "main"
+            if target_branch == "main":
+                row = conn.execute(
+                    """SELECT COUNT(*) FROM deltas
+                       WHERE part_id=? AND branch='main'
+                         AND from_version >= ? AND to_version <= ?""",
+                    (part_id, base_version, version)
+                ).fetchone()
+                return row[0] if row else 0
+
             row = conn.execute(
-                """SELECT COUNT(*) FROM deltas
-                   WHERE part_id=? AND from_version >= ? AND to_version <= ?""",
-                (part_id, base_version, version)
+                """SELECT MIN(from_version) FROM deltas
+                   WHERE part_id=? AND branch=?""",
+                (part_id, target_branch)
             ).fetchone()
-            return row[0] if row else 0
+            branch_start = row[0] if row else None
+            if branch_start is None:
+                return 0
+
+            main_count = conn.execute(
+                """SELECT COUNT(*) FROM deltas
+                   WHERE part_id=? AND branch='main'
+                     AND from_version >= ? AND to_version <= ?""",
+                (part_id, base_version, branch_start)
+            ).fetchone()[0] or 0
+            branch_count = conn.execute(
+                """SELECT COUNT(*) FROM deltas
+                   WHERE part_id=? AND branch=?
+                     AND from_version >= ? AND to_version <= ?""",
+                (part_id, target_branch, branch_start, version)
+            ).fetchone()[0] or 0
+            return main_count + branch_count
+
+    def delta_patch_bytes(self, part_id, version, branch="main"):
+        """Tong logical bytes cua delta patches can ap dung de den target version."""
+        with _get_conn(self.site_id) as conn:
+            base_row = conn.execute(
+                "SELECT version FROM bases WHERE part_id=?",
+                (part_id,),
+            ).fetchone()
+            if not base_row:
+                return 0
+            base_version = base_row[0]
+            if version <= base_version:
+                return 0
+
+            target_branch = branch or "main"
+            if target_branch == "main":
+                row = conn.execute(
+                    """SELECT SUM(LENGTH(changes)) FROM deltas
+                       WHERE part_id=? AND branch='main'
+                         AND from_version >= ? AND to_version <= ?""",
+                    (part_id, base_version, version),
+                ).fetchone()
+                return row[0] or 0
+
+            row = conn.execute(
+                """SELECT SUM(LENGTH(changes)) FROM deltas
+                   WHERE part_id=? AND (
+                        (branch='main' AND to_version <= ?)
+                        OR (branch=? AND to_version <= ?)
+                   )""",
+                (part_id, version, target_branch, version),
+            ).fetchone()
+            return row[0] or 0
+
+    def rehydrate(self, oid, target_version, branch="main"):
+        """
+        Rehydrate object theo OID bat bien.
+        Tra ve (model, meta) de benchmark va verify checksum.
+        """
+        snapshot_store = SnapshotStore(self.site_id)
+        part_id = snapshot_store.get_part_id_by_oid(oid)
+        if not part_id:
+            return None, {"error": "OID_NOT_FOUND"}
+
+        model = self.get(part_id, target_version, branch=branch)
+        if not model:
+            return None, {"error": "TARGET_VERSION_NOT_FOUND"}
+
+        base = snapshot_store.get(part_id, 1, "main")
+        base_bytes = len(json.dumps(base.to_dict(), ensure_ascii=False).encode("utf-8")) if base else 0
+        patch_bytes = self.delta_patch_bytes(part_id, target_version, branch=branch)
+        rehydrated_bytes = len(json.dumps(model.to_dict(), ensure_ascii=False).encode("utf-8"))
+        steps = self.rehydration_cost(part_id, target_version, branch=branch)
+
+        return model, {
+            "part_id": part_id,
+            "oid": oid,
+            "target_version": target_version,
+            "branch": branch,
+            "base_snapshot_bytes": base_bytes,
+            "delta_patch_bytes": patch_bytes,
+            "rehydrated_object_bytes": rehydrated_bytes,
+            "rehydration_steps": steps,
+        }
 
 
 # ══════════════════════════════════════════════════════════
@@ -547,6 +769,286 @@ class CheckoutStore:
 #  TRANSACTION MANAGER  (Atomic Checkin & Rollback)
 # ══════════════════════════════════════════════════════════
 
+class ReplicationOutboxStore:
+    """
+    Durable outbox cho replication.
+    Source ghi operation vao DB truoc khi gui qua mang:
+      PENDING -> ACKED neu target import thanh cong
+      PENDING/FAILED -> retry duoc khi node reconnect
+    """
+
+    def __init__(self, site_id):
+        self.site_id = site_id
+
+    def _now(self):
+        return datetime.now().isoformat()
+
+    def _retry_seconds(self, attempt_count):
+        # Exponential backoff cap 60s
+        return min(60, 2 ** max(0, min(attempt_count, 6)))
+
+    def make_op_id(self, target_site, model):
+        branch = model.branch or "main"
+        return f"{self.site_id}->{target_site}:{model.oid}:{model.part_id}:{branch}:v{model.version}"
+
+    def enqueue_model(self, target_site, model):
+        op_id = self.make_op_id(target_site, model)
+        payload_json = json.dumps(model.to_dict(), ensure_ascii=False)
+        now = self._now()
+        with _get_conn(self.site_id) as conn:
+            conn.execute(
+                """INSERT OR IGNORE INTO replication_outbox
+                   (op_id, source_site, target_site, part_id, oid, version, branch,
+                    payload_json, status, attempt_count, last_error, next_retry_at, created_at, updated_at, acked_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', 0, NULL, NULL, ?, ?, NULL)""",
+                (
+                    op_id,
+                    self.site_id,
+                    target_site,
+                    model.part_id,
+                    model.oid,
+                    model.version,
+                    model.branch or "main",
+                    payload_json,
+                    now,
+                    now,
+                )
+            )
+            conn.execute(
+                """UPDATE replication_outbox
+                   SET payload_json=?, version=?, branch=?, status='PENDING',
+                       last_error=NULL, next_retry_at=NULL, updated_at=?
+                   WHERE op_id=? AND status <> 'ACKED'""",
+                (payload_json, model.version, model.branch or "main", now, op_id)
+            )
+            conn.commit()
+        return self.get(op_id)
+
+    def _row_to_dict(self, row):
+        if not row:
+            return None
+        return {
+            "op_id": row[0],
+            "source_site": row[1],
+            "target_site": row[2],
+            "part_id": row[3],
+            "oid": row[4],
+            "version": row[5],
+            "branch": row[6],
+            "payload": json.loads(row[7]),
+            "status": row[8],
+            "attempt_count": row[9],
+            "last_error": row[10],
+            "next_retry_at": row[11],
+            "created_at": row[12],
+            "updated_at": row[13],
+            "acked_at": row[14],
+        }
+
+    def get(self, op_id):
+        with _get_conn(self.site_id) as conn:
+            row = conn.execute(
+                """SELECT op_id, source_site, target_site, part_id, oid, version, branch,
+                          payload_json, status, attempt_count, last_error, next_retry_at, created_at, updated_at, acked_at
+                   FROM replication_outbox WHERE op_id=?""",
+                (op_id,)
+            ).fetchone()
+        return self._row_to_dict(row)
+
+    def list(self, status=None, target_site=None):
+        query = """SELECT op_id, source_site, target_site, part_id, oid, version, branch,
+                          payload_json, status, attempt_count, last_error, next_retry_at, created_at, updated_at, acked_at
+                   FROM replication_outbox"""
+        clauses = []
+        params = []
+        if status:
+            clauses.append("status=?")
+            params.append(status)
+        if target_site:
+            clauses.append("target_site=?")
+            params.append(target_site)
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        query += " ORDER BY created_at ASC"
+        with _get_conn(self.site_id) as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._row_to_dict(row) for row in rows]
+
+    def pending(self, target_site=None):
+        query = """SELECT op_id, source_site, target_site, part_id, oid, version, branch,
+                          payload_json, status, attempt_count, last_error, next_retry_at, created_at, updated_at, acked_at
+                   FROM replication_outbox
+                   WHERE status IN ('PENDING', 'FAILED')
+                     AND (next_retry_at IS NULL OR next_retry_at <= ?)"""
+        now = self._now()
+        params = [now]
+        if target_site:
+            query += " AND target_site=?"
+            params.append(target_site)
+        query += " ORDER BY created_at ASC"
+        with _get_conn(self.site_id) as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._row_to_dict(row) for row in rows]
+
+    def mark_delivered(self, op_id):
+        now = self._now()
+        with _get_conn(self.site_id) as conn:
+            conn.execute(
+                """UPDATE replication_outbox
+                   SET status='ACKED', attempt_count=attempt_count+1,
+                       last_error=NULL, next_retry_at=NULL, updated_at=?, acked_at=?
+                   WHERE op_id=?""",
+                (now, now, op_id)
+            )
+            conn.commit()
+        return self.get(op_id)
+
+    def mark_failed(self, op_id, error):
+        now = self._now()
+        current = self.get(op_id) or {}
+        attempt_count = int(current.get("attempt_count", 0)) + 1
+        retry_after = self._retry_seconds(attempt_count)
+        next_retry_at = datetime.fromtimestamp(
+            datetime.now().timestamp() + retry_after
+        ).isoformat()
+        with _get_conn(self.site_id) as conn:
+            conn.execute(
+                """UPDATE replication_outbox
+                   SET status='FAILED', attempt_count=?,
+                       last_error=?, next_retry_at=?, updated_at=?
+                   WHERE op_id=?""",
+                (attempt_count, str(error)[:1000], next_retry_at, now, op_id)
+            )
+            conn.commit()
+        return self.get(op_id)
+
+    def summary(self):
+        with _get_conn(self.site_id) as conn:
+            rows = conn.execute(
+                """SELECT status, COUNT(*) FROM replication_outbox
+                   GROUP BY status ORDER BY status"""
+            ).fetchall()
+        counts = {row[0]: row[1] for row in rows}
+        return {
+            "site_id": self.site_id,
+            "pending": counts.get("PENDING", 0),
+            "failed": counts.get("FAILED", 0),
+            "acked": counts.get("ACKED", 0),
+            "total": sum(counts.values()),
+        }
+
+
+class ReplicationInboxStore:
+    """
+    Durable inbox cho idempotent consumer semantics.
+    Cung op_id + cung request_hash => tra lai ACK cu, khong apply lan nua.
+    Cung op_id + request_hash khac => reject.
+    """
+
+    def __init__(self, site_id):
+        self.site_id = site_id
+
+    def _now(self):
+        return datetime.now().isoformat()
+
+    def _hash_payload(self, payload):
+        canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    def _row_to_dict(self, row):
+        if not row:
+            return None
+        response_json = row[9]
+        return {
+            "op_id": row[0],
+            "request_hash": row[1],
+            "source_site": row[2],
+            "part_id": row[3],
+            "oid": row[4],
+            "version": row[5],
+            "branch": row[6],
+            "checksum": row[7],
+            "status": row[8],
+            "stored_response_json": json.loads(response_json) if response_json else None,
+            "stored_response_hash": row[10],
+            "processed_at": row[11],
+        }
+
+    def get(self, op_id):
+        with _get_conn(self.site_id) as conn:
+            row = conn.execute(
+                """SELECT op_id, request_hash, source_site, part_id, oid, version, branch,
+                          checksum, status, stored_response_json, stored_response_hash, processed_at
+                   FROM replication_inbox WHERE op_id=?""",
+                (op_id,),
+            ).fetchone()
+        return self._row_to_dict(row)
+
+    def claim_or_get(self, op_id, request_payload, source_site, model):
+        request_hash = self._hash_payload(request_payload)
+        with _get_conn(self.site_id) as conn:
+            existing = conn.execute(
+                """SELECT op_id, request_hash, source_site, part_id, oid, version, branch,
+                          checksum, status, stored_response_json, stored_response_hash, processed_at
+                   FROM replication_inbox WHERE op_id=?""",
+                (op_id,),
+            ).fetchone()
+            if existing:
+                return self._row_to_dict(existing), False, request_hash
+
+            conn.execute(
+                """INSERT INTO replication_inbox
+                   (op_id, request_hash, source_site, part_id, oid, version, branch, checksum,
+                    status, processed_at, stored_response_json, stored_response_hash)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PROCESSING', ?, NULL, NULL)""",
+                (
+                    op_id,
+                    request_hash,
+                    source_site,
+                    model.part_id,
+                    model.oid,
+                    model.version,
+                    model.branch or "main",
+                    model.checksum(),
+                    self._now(),
+                ),
+            )
+            conn.commit()
+        return self.get(op_id), True, request_hash
+
+    def store_response(self, op_id, response_payload, status="PROCESSED"):
+        response_json = json.dumps(response_payload, ensure_ascii=False, sort_keys=True)
+        response_hash = hashlib.sha256(response_json.encode("utf-8")).hexdigest()
+        now = self._now()
+        with _get_conn(self.site_id) as conn:
+            conn.execute(
+                """UPDATE replication_inbox
+                   SET status=?, stored_response_json=?, stored_response_hash=?, processed_at=?
+                   WHERE op_id=?""",
+                (status, response_json, response_hash, now, op_id),
+            )
+            conn.commit()
+        return self.get(op_id)
+
+    def list(self, status=None):
+        query = """SELECT op_id, request_hash, source_site, part_id, oid, version, branch,
+                          checksum, status, stored_response_json, stored_response_hash, processed_at
+                   FROM replication_inbox"""
+        params = []
+        if status:
+            query += " WHERE status=?"
+            params.append(status)
+        query += " ORDER BY processed_at DESC"
+        with _get_conn(self.site_id) as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._row_to_dict(row) for row in rows]
+
+    def delete(self, op_id):
+        with _get_conn(self.site_id) as conn:
+            conn.execute("DELETE FROM replication_inbox WHERE op_id=?", (op_id,))
+            conn.commit()
+
+
 class TransactionManager:
     @staticmethod
     def commit_checkin(site_id, model, delta, checkout_part_id, checkout_user):
@@ -563,9 +1065,9 @@ class TransactionManager:
                 changes_json = json.dumps(delta.changes, ensure_ascii=False)
                 conn.execute(
                     """INSERT OR REPLACE INTO deltas
-                       (part_id, from_version, to_version, changes, timestamp, author_site)
-                       VALUES (?, ?, ?, ?, ?, ?)""",
-                    (delta.part_id, delta.from_version, delta.to_version, changes_json, delta.timestamp, delta.author_site)
+                       (part_id, branch, from_version, to_version, changes, timestamp, author_site)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (delta.part_id, delta.branch or "main", delta.from_version, delta.to_version, changes_json, delta.timestamp, delta.author_site)
                 )
             if checkout_part_id and checkout_user:
                 conn.execute("DELETE FROM checkouts WHERE part_id=? AND user=?", (checkout_part_id, checkout_user))
@@ -580,7 +1082,7 @@ class TransactionManager:
         Neu crash xay ra SAU khi ghi Snapshot nhung TRUOC khi ghi Delta:
           → Snapshot v_max ton tai trong DB nhung khong co Delta tuong ung
           → Day la trang thai inconsistent: can xoa Snapshot orphan nay
-        
+
         Neu crash xay ra TRUOC khi ghi Snapshot (truong hop thong thuong qua flag):
           → DB khong bi thay doi → khong can xoa gi
         """
@@ -603,4 +1105,4 @@ class TransactionManager:
                     conn.commit()
                     print(f"[Rollback] Site {site_id}: Removed orphan snapshot {part_id} v{v_max} (no delta found)")
                 else:
-                    print(f"[Rollback] Site {site_id}: Integrity OK for {part_id} v{v_max}")
+                    print(f"[Rollback] Site {site_id}: Integrity OK for {part_id} v{v_max}")
