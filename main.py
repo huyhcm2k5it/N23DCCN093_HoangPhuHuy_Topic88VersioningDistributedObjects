@@ -39,6 +39,7 @@ BANNER = """
 
 BASE_DIR = os.path.dirname(__file__)
 DB_DIR = os.path.join(BASE_DIR, "app", "db")
+RESULTS_DIR = os.path.join(BASE_DIR, "results")
 DATASET_FILES = {
     "Site-A": os.path.join(BASE_DIR, "dataset", "site_a_engine.json"),
     "Site-B": os.path.join(BASE_DIR, "dataset", "site_b_chassis.json"),
@@ -59,28 +60,47 @@ def is_runtime_db_file(filename):
 
 
 def clean_databases():
-    """Xoa runtime SQLite/WAL files trong thu muc app/db/."""
-    if not os.path.exists(DB_DIR):
-        print("  Khong co DB nao can xoa.")
-        return
+    """Xoa runtime SQLite/WAL files va cac file ket qua benchmark trong results/."""
+    # 1. Xoa runtime DB files
+    if os.path.exists(DB_DIR):
+        deleted_db = []
+        skipped_db = []
+        for filename in os.listdir(DB_DIR):
+            if not is_runtime_db_file(filename):
+                continue
+            try:
+                os.remove(os.path.join(DB_DIR, filename))
+                deleted_db.append(filename)
+            except PermissionError:
+                skipped_db.append(filename)
+        
+        if deleted_db:
+            print(f"  Da xoa DB: {', '.join(deleted_db)}")
+        if skipped_db:
+            print(f"  Khong xoa duoc DB (dang bi lock): {', '.join(skipped_db)}")
+    else:
+        print("  Khong co thu muc DB.")
 
-    deleted = []
-    skipped = []
-    for filename in os.listdir(DB_DIR):
-        if not is_runtime_db_file(filename):
-            continue
-        try:
-            os.remove(os.path.join(DB_DIR, filename))
-            deleted.append(filename)
-        except PermissionError:
-            skipped.append(filename)
-
-    if deleted:
-        print(f"  Da xoa: {', '.join(deleted)}")
-    if skipped:
-        print(f"  Khong xoa duoc (dang bi lock): {', '.join(skipped)}")
-    if not deleted and not skipped:
-        print("  Khong co file nao.")
+    # 2. Xoa cac file ket qua benchmark
+    if os.path.exists(RESULTS_DIR):
+        deleted_res = []
+        skipped_res = []
+        for filename in os.listdir(RESULTS_DIR):
+            file_path = os.path.join(RESULTS_DIR, filename)
+            if os.path.isdir(file_path):
+                continue
+            try:
+                os.remove(file_path)
+                deleted_res.append(filename)
+            except Exception:
+                skipped_res.append(filename)
+        
+        if deleted_res:
+            print(f"  Da xoa file ket qua: {', '.join(deleted_res)}")
+        if skipped_res:
+            print(f"  Khong xoa duoc file ket qua: {', '.join(skipped_res)}")
+    else:
+        print("  Khong co thu muc ket qua results/.")
 
     from app.storage import _initialized_dbs
     _initialized_dbs.clear()
