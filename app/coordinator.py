@@ -236,51 +236,6 @@ class CoordinatorMetadataStore:
             "source": "coordinator",
         }
 
-    def get_branch_heads(self, part_id):
-        with self._conn() as conn:
-            rows = conn.execute(
-                """SELECT part_id, branch, head_version, oid, checksum, site_id, updated_at
-                   FROM branch_heads
-                   WHERE part_id=?
-                   ORDER BY branch ASC""",
-                (part_id,),
-            ).fetchall()
-        return [
-            {
-                "part_id": row[0],
-                "branch": row[1],
-                "head_version": row[2],
-                "oid": row[3],
-                "checksum": row[4],
-                "site_id": row[5],
-                "updated_at": row[6],
-            }
-            for row in rows
-        ]
-
-    def get_conflicts(self, part_id):
-        with self._conn() as conn:
-            rows = conn.execute(
-                """SELECT id, part_id, oid, site_id, base_version, conflict_branch, detail, timestamp
-                   FROM conflicts
-                   WHERE part_id=?
-                   ORDER BY id DESC""",
-                (part_id,),
-            ).fetchall()
-        return [
-            {
-                "id": row[0],
-                "part_id": row[1],
-                "oid": row[2],
-                "site_id": row[3],
-                "base_version": row[4],
-                "conflict_branch": row[5],
-                "detail": row[6],
-                "timestamp": row[7],
-            }
-            for row in rows
-        ]
-
     def list_sites(self):
         with self._conn() as conn:
             rows = conn.execute(
@@ -348,13 +303,5 @@ def create_coordinator_app(db_path=None):
     @app.route("/meta/version-graph/<part_id>", methods=["GET"])
     def meta_version_graph(part_id):
         return jsonify(store.get_version_graph(part_id)), 200
-
-    @app.route("/meta/branch-heads/<part_id>", methods=["GET"])
-    def meta_branch_heads(part_id):
-        return jsonify({"part_id": part_id, "branch_heads": store.get_branch_heads(part_id)}), 200
-
-    @app.route("/meta/conflicts/<part_id>", methods=["GET"])
-    def meta_conflicts(part_id):
-        return jsonify({"part_id": part_id, "conflicts": store.get_conflicts(part_id)}), 200
 
     return app

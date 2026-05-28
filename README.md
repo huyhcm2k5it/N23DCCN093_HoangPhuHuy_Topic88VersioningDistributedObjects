@@ -74,8 +74,7 @@ Hệ thống hiện thực các yêu cầu trên bằng:
 
 **Site node** (`app/site_node.py`):
 
-- Mỗi site có SQLite riêng (`app/db/Site-A.db`, `Site-B.db`, `Site-C.db`) với 7 bảng: `snapshots`, `bases`, `deltas`, `checkouts`, `replication_outbox`, `replication_inbox`.
-- Write-Ahead Log riêng (`{site_id}_wal.json`) cho crash recovery.
+- Mỗi site có SQLite riêng (`app/db/Site-A.db`, `Site-B.db`, `Site-C.db`) với 6 bảng: `snapshots`, `bases`, `deltas`, `checkouts`, `replication_outbox`, `replication_inbox`.
 
 **Giao tiếp:** HTTP/REST (Flask + Requests). Không dùng shared memory hay message broker.
 
@@ -85,7 +84,7 @@ Hệ thống hiện thực các yêu cầu trên bằng:
 | Site-A (Engine)   | `http://127.0.0.1:5001` |
 | Site-B (Chassis)  | `http://127.0.0.1:5002` |
 | Site-C (Interior) | `http://127.0.0.1:5003` |
-| Frontend          | `http://localhost:5173` |
+| Frontend          | `http://localhost:3000` |
 
 ---
 
@@ -180,16 +179,6 @@ base_v1 → delta(v1→v2) → delta(v2→v3) → ... → delta(vN-1→vN)
 
 Outbox có exponential backoff retry, idempotency check tại inbox (theo `op_id` + `request_hash`), tránh duplicate side-effect.
 
-### 4.4. WAL Crash Recovery
-
-Write-Ahead Log (`WALLog` trong `app/models.py`) ghi nhận mỗi checkin trước khi commit DB:
-
-1. `wal_log.begin("CHECKIN", ...)` → ghi WAL entry `committed=false`.
-2. Thực hiện snapshot/delta write.
-3. `wal_log.commit(entry_id)` → `committed=true`.
-
-Nếu crash giữa bước 1 và 3, `wal_recover()` rollback các entry uncommitted. Thread-safe bằng `threading.Lock`.
-
 ---
 
 ## 5. Cài đặt
@@ -222,7 +211,7 @@ Dependencies: React 18, Vite, Tailwind CSS, lucide-react, Recharts.
 python main.py --clean
 ```
 
-Xóa tất cả SQLite DB, WAL files trong `app/db/` và benchmark results trong `results/`.
+Xóa tất cả SQLite DB trong `app/db/` và benchmark results trong `results/`.
 
 ### Sinh dataset
 
@@ -271,7 +260,7 @@ cd giaodien
 npm run dev
 ```
 
-Mở URL Vite cung cấp: `http://localhost:5173`
+Mở URL Vite cung cấp: `http://localhost:3000`
 
 ### Chạy demo qua terminal
 
@@ -319,22 +308,22 @@ Frontend gọi backend qua REST API (`src/api.js`). Backend là source of truth 
 | `POST` | `/models/<part_id>/checkout`      | Checkout object (ghi `base_version` vào DB)           |
 | `POST` | `/models/<part_id>/checkin`       | Checkin object (detect conflict, tạo branch nếu stale) |
 | `GET`  | `/models/<part_id>/versions`      | Tất cả versions và branches                           |
-| `GET`  | `/models/<part_id>/version-graph` | Version graph từ Coordinator                            |
 | `POST` | `/replicate`                      | Replicate object sang site khác qua outbox              |
 | `POST` | `/replication/incoming`           | Nhận replication (idempotent theo `op_id`)            |
 | `GET`  | `/replication/outbox`             | Xem outbox (filter `?status=`, `?target_site=`)      |
-| `GET`  | `/replication/inbox`              | Xem inbox                                                |
+| `GET`  | `/replication/inbox`              | Xem inbox (danh sách replication nhận được)            |
 | `POST` | `/replication/replay`             | Replay pending outbox operations                         |
 | `POST` | `/network/disconnect`             | Giả lập site disconnect (chặn inter-site request)     |
 | `POST` | `/network/reconnect`              | Reconnect + auto-replay outbox                           |
 | `GET`  | `/network/status`                 | Trạng thái network                                     |
 | `GET`  | `/storage/compare`                | So sánh snapshot vs delta bytes                         |
-| `POST` | `/rehydrate`                      | Rehydrate object theo OID + version                      |
-| `GET`  | `/rehydration/benchmark`          | Đo latency snapshot path vs delta path                  |
 | `GET`  | `/fragmentation`                  | Thông tin phân mảnh tại site                         |
 | `GET`  | `/benchmark`                      | Đọc benchmark results JSON                             |
 | `POST` | `/benchmark/run`                  | Chạy benchmark 10 versions                              |
-| `GET`  | `/logs`                           | Event log của site                                      |
+| `POST` | `/rehydrate`                      | Rehydrate (tái dựng) một CAD model từ delta patches     |
+| `GET`  | `/logs`                           | Xem logs hoạt động của Site                          |
+| `GET`  | `/dataset/info`                   | Lấy thông tin về kích thước và schema của dataset     |
+| `GET`  | `/checkouts`                      | Liệt kê danh sách các checkouts đang hoạt động        |
 
 ### Coordinator API (`app/coordinator.py`)
 
@@ -346,8 +335,6 @@ Frontend gọi backend qua REST API (`src/api.js`). Backend là source of truth 
 | `POST` | `/meta/record-conflict`         | Ghi nhận conflict event                       |
 | `POST` | `/meta/site-health`             | Site push health status                        |
 | `GET`  | `/meta/version-graph/<part_id>` | Xem version graph                              |
-| `GET`  | `/meta/branch-heads/<part_id>`  | Xem branch heads                               |
-| `GET`  | `/meta/conflicts/<part_id>`     | Xem conflicts                                  |
 
 ---
 
@@ -357,28 +344,28 @@ Kết quả benchmark 10 versions (từ `results/benchmark_results.json`):
 
 | Metric               | Giá trị       |
 | -------------------- | --------------- |
-| Full Snapshot tổng  | 68,361 bytes    |
-| Delta Storage tổng  | 10,319 bytes    |
-| Tiết kiệm          | **84.9%** |
-| Avg rehydration time | 3.924 ms        |
+| Full Snapshot tổng  | 70,797 bytes    |
+| Delta Storage tổng  | 11,841 bytes    |
+| Tiết kiệm          | **83.27%**      |
+| Avg rehydration time | 7.799 ms        |
 | Integrity (SHA-256)  | ✅ OK           |
 
 Chi tiết theo version:
 
 | Version | Snapshot (bytes) | Delta patch (bytes) | Saving % | Rehydration steps |
 | ------- | ---------------- | ------------------- | -------- | ----------------- |
-| 1       | 6,126            | 0 (base)            | 0%       | 0                 |
-| 2       | 5,873            | 38                  | 99.4%    | 1                 |
-| 3       | 5,873            | 40                  | 99.3%    | 2                 |
-| 4       | 5,873            | 168                 | 97.1%    | 3                 |
-| 5       | 5,873            | 58                  | 99.0%    | 4                 |
-| 6       | 7,597            | 1,931               | 74.6%    | 5                 |
-| 7       | 7,597            | 193                 | 97.5%    | 6                 |
-| 8       | 8,502            | 1,028               | 87.9%    | 7                 |
-| 9       | 7,423            | 103                 | 98.6%    | 8                 |
-| 10      | 7,624            | 634                 | 91.7%    | 9                 |
+| 1       | 6,110            | 0 (base)            | 0%       | 0                 |
+| 2       | 6,110            | 200                 | 96.7%    | 1                 |
+| 3       | 6,110            | 202                 | 96.7%    | 2                 |
+| 4       | 6,110            | 329                 | 94.6%    | 3                 |
+| 5       | 6,120            | 230                 | 96.2%    | 4                 |
+| 6       | 7,853            | 2,102               | 73.2%    | 5                 |
+| 7       | 7,853            | 354                 | 95.5%    | 6                 |
+| 8       | 8,759            | 1,191               | 86.4%    | 7                 |
+| 9       | 7,681            | 265                 | 96.5%    | 8                 |
+| 10      | 7,903            | 865                 | 89.1%    | 9                 |
 
-Trade-off: Delta storage tiết kiệm ~85% dung lượng nhưng rehydration cost tăng tuyến tính O(k) với k = số delta trong chain.
+Trade-off: Delta storage tiết kiệm ~83% dung lượng nhưng rehydration cost tăng tuyến tính O(k) với k = số delta trong chain.
 
 ---
 
@@ -390,8 +377,8 @@ Topic88_VersioningDistributedObjects/
 │   ├── __init__.py
 │   ├── config.py             # Cấu hình ports, benchmark settings
 │   ├── coordinator.py        # CoordinatorMetadataStore + Flask app
-│   ├── models.py             # Geometry, CADModel, Delta, WALEntry, WALLog + schemas
-│   ├── server.py             # Flask REST API routes cho site node
+│   ├── models.py             # Geometry, CADModel, Delta, schemas
+│   ├── server.py             # REST API routes & handlers (Thin Flask entrypoint)
 │   ├── site_node.py          # SiteNode: checkout, checkin, conflict, replication
 │   ├── storage.py            # SnapshotStore, DeltaStore, CheckoutStore,
 │   │                         # ReplicationOutboxStore, ReplicationInboxStore,

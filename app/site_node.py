@@ -11,17 +11,16 @@ FIX:
 
 import copy
 from datetime import datetime
-from .models import CADModel, Delta, Geometry, WALLog
+from .models import CADModel, Delta
 from .storage import (
     SnapshotStore,
     DeltaStore,
     CheckoutStore,
     ReplicationOutboxStore,
     ReplicationInboxStore,
-)
+    )
 import os
 import requests
-
 
 class SiteNode:
     """Dai dien 1 site/node trong he thong phan tan."""
@@ -47,31 +46,9 @@ class SiteNode:
         self.replication_outbox = ReplicationOutboxStore(site_id)
         self.replication_inbox = ReplicationInboxStore(site_id)
         self.coordinator_url = coordinator_url.rstrip("/") if coordinator_url else None
-
+        self.network_online = True
         self.log = []
 
-        # WAL thuc thu — persist xuong file JSON
-        db_dir = os.path.join(os.path.dirname(__file__), "db")
-        os.makedirs(db_dir, exist_ok=True)
-        self.wal_log = WALLog(os.path.join(db_dir, f"{site_id}_wal.json"))
-
-        # Crash flag
-        self.crash_on_next_checkin = False
-        self.network_online = True
-
-    @property
-    def wal_state(self):
-        """Derived property tu WALLog thuc."""
-        all_entries = self.wal_log.all_entries()
-        uncommitted = self.wal_log.get_uncommitted()
-        return {
-            "crash_on_next_checkin": self.crash_on_next_checkin,
-            "coordinator_crashed": len(uncommitted) > 0,
-            "total_entries": len(all_entries),
-            "uncommitted_count": len(uncommitted),
-            "pending_transactions": [e.to_dict() for e in uncommitted],
-            "all_entries": [e.to_dict() for e in all_entries],
-        }
 
     @property
     def network_state(self):
@@ -261,7 +238,7 @@ class SiteNode:
 
     def checkin(self, part_id, user, modified_model):
         """
-        Checkin voi WAL bao ve giao dich + persistent checkout.
+        Checkin voi persistent checkout.
         """
         # Kiem tra checkout ton tai (tu DB)
         checkout_info = self.checkout_store.get(part_id, user)
@@ -274,20 +251,6 @@ class SiteNode:
         modified_model.oid = checkout_base.oid
         if not modified_model.site_origin:
             modified_model.site_origin = checkout_base.site_origin
-
-        # 1. BEGIN WAL
-        txn_data = {
-            "user": user,
-            "model_data": modified_model.to_dict()
-        }
-        entry_id = self.wal_log.begin("CHECKIN", part_id, txn_data)
-
-        # 2. CRASH SIMULATION
-        if self.crash_on_next_checkin:
-            self.crash_on_next_checkin = False
-            raise RuntimeError(
-                f"CRASH_SIMULATED: WAL entry #{entry_id} PENDING. DB khong duoc cap nhat."
-            )
 
         try:
             base_version = checkout_info['base_version']
@@ -313,7 +276,6 @@ class SiteNode:
                 from .storage import TransactionManager
                 TransactionManager.commit_checkin(self.site_id, modified_model, delta_obj, part_id, user)
 
-                self.wal_log.commit(entry_id)
                 self.notify_update_head(
                     modified_model,
                     parent_version=base_version,
@@ -339,8 +301,6 @@ class SiteNode:
             from .storage import TransactionManager
             TransactionManager.commit_checkin(self.site_id, modified_model, delta_obj, part_id, user)
 
-            # 3. COMMIT WAL
-            self.wal_log.commit(entry_id)
             self.notify_update_head(
                 modified_model,
                 parent_version=(current.version if current else None),
@@ -451,18 +411,7 @@ class SiteNode:
             "savings_percent": round((1 - delta / max(snap, 1)) * 100, 2)
         }
 
-    def wal_recover(self):
-        """Recovery that: rollback cac WAL entry chua commit."""
-        def _rollback_fn(entry):
-            if entry.operation == "CHECKIN":
-                from .storage import TransactionManager
-                TransactionManager.rollback_cleanup(self.site_id, entry.part_id)
-                
-            self._log("WAL_ROLLBACK", entry.part_id,
-                      f"Rolled back WAL entry #{entry.entry_id}: {entry.operation}")
 
-        recovered = self.wal_log.recover(_rollback_fn)
-        return recovered
 
     def _log(self, action, part_id, msg):
         self.log.append({

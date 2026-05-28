@@ -16,9 +16,9 @@ function SiteCard({ site }) {
   const delta  = site.storage?.delta_total_bytes    || 0;
   const saving = site.storage?.savings_percent ?? 0;
   const disconnected = site.reachable && site.network_online === false;
-  const statusLabel = disconnected ? 'Disconnected' : (site.online ? 'Online' : 'Offline');
-  const statusBadge = site.online ? 'badge-green' : (disconnected ? 'badge-amber' : 'badge-red');
-  const statusDot = site.online ? 'dot-green' : (disconnected ? 'dot-amber' : 'dot-red');
+  const statusLabel = disconnected ? 'Disconnected' : (site.reachable ? 'Online' : 'Offline');
+  const statusBadge = disconnected ? 'badge-amber' : (site.reachable ? 'badge-green' : 'badge-red');
+  const statusDot = disconnected ? 'dot-amber' : (site.reachable ? 'dot-green' : 'dot-red');
 
   return (
     <div className="card" style={{ borderTop: `3px solid ${color}` }}>
@@ -80,7 +80,7 @@ function SiteCard({ site }) {
 }
 
 export default function TabDashboard({ sites }) {
-  const onlineCount = Object.values(sites).filter(s => s?.online).length;
+  const onlineCount = Object.values(sites).filter(s => s?.reachable).length;
   const totalParts  = Object.values(sites).reduce((s, x) => s + (x.models?.length || 0), 0);
 
   return (
@@ -129,6 +129,7 @@ export default function TabDashboard({ sites }) {
           <tbody>
             {Object.entries(sites).map(([key, site]) => {
               const port = site.host?.split(':')[2] || '—';
+              const rowDisconnected = site.reachable && site.network_online === false;
               return (
                 <tr key={key} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                   <td style={{ padding: '10px 12px', fontWeight: 600, color: site.color }}>{site.name}</td>
@@ -146,8 +147,8 @@ export default function TabDashboard({ sites }) {
                     </span>
                   </td>
                   <td style={{ padding: '10px 12px' }}>
-                    <span className={`badge ${site.online ? 'badge-green' : (site.reachable && site.network_online === false ? 'badge-amber' : 'badge-red')}`}>
-                      {site.online ? '● Online' : (site.reachable && site.network_online === false ? '● Disconnected' : '○ Offline')}
+                    <span className={`badge ${rowDisconnected ? 'badge-amber' : (site.reachable ? 'badge-green' : 'badge-red')}`}>
+                      {rowDisconnected ? '● Disconnected' : (site.reachable ? '● Online' : '○ Offline')}
                     </span>
                   </td>
                 </tr>

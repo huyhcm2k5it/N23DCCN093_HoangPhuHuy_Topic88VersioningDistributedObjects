@@ -147,13 +147,12 @@ def run_benchmark(num_versions=10, complexity=5):
 
     # Khoi tao 2 store (xoa DB cu neu co de dam bao chain delta sach)
     from app.storage import _initialized_dbs
-    for fname in ["benchmark.db", "benchmark_wal.json"]:
-        fpath = os.path.join(DB_DIR, fname)
-        if os.path.exists(fpath):
-            try:
-                os.remove(fpath)
-            except PermissionError:
-                pass
+    fpath = os.path.join(DB_DIR, "benchmark.db")
+    if os.path.exists(fpath):
+        try:
+            os.remove(fpath)
+        except PermissionError:
+            pass
     _initialized_dbs.discard("benchmark")
 
     snapshot_store = SnapshotStore("benchmark")

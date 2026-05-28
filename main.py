@@ -60,7 +60,7 @@ def is_runtime_db_file(filename):
 
 
 def clean_databases():
-    """Xoa runtime SQLite/WAL files va cac file ket qua benchmark trong results/."""
+    """Xoa runtime SQLite files va cac file ket qua benchmark trong results/."""
     # 1. Xoa runtime DB files
     if os.path.exists(DB_DIR):
         deleted_db = []
