@@ -179,6 +179,15 @@ base_v1 → delta(v1→v2) → delta(v2→v3) → ... → delta(vN-1→vN)
 
 Outbox có exponential backoff retry, idempotency check tại inbox (theo `op_id` + `request_hash`), tránh duplicate side-effect.
 
+### 4.4. Phân tích Tuần tự hóa (Serialization Analysis)
+
+Để đáp ứng yêu cầu truyền tải dữ liệu phân tán (`CADModel` chứa đối tượng lồng ghép `Geometry` gồm `vertices`, `edges`, `faces`) qua mạng HTTP, hệ thống sử dụng thư viện **Marshmallow** để quản lý tiến trình Tuần tự hóa (Serialization) và Giải tuần tự hóa (Deserialization).
+
+- **Kiểm soát kiểu dữ liệu:** Quá trình chuyển đổi từ Python Object (OOP) sang JSON dictionary và ngược lại được kiểm soát chặt chẽ qua `CADModelSchema` và `GeometrySchema` (`app/models.py`).
+- **Bảo toàn Định danh (OID):** Sinh viên không cần tự viết các hàm parser dễ lỗi. Marshmallow đảm bảo Object Identity (OID) luôn được giữ nguyên vẹn trong quá trình Serialize và truyền tải giữa các Site.
+- **Tối ưu Network Payload:** Schema quy định loại bỏ rác hoặc các trường không xác định (`unknown = EXCLUDE`), đảm bảo gói tin JSON gửi qua mạng gọn nhẹ nhất có thể.
+- **Object Rehydration Lifecycle:** Bằng cơ chế hook (`@post_load`), JSON Payload từ Outbox/Inbox ngay lập tức được ánh xạ ngược thành Class Instance, cho phép các hàm như `apply_delta()` hay `checksum()` được gọi ngay lập tức với chi phí khởi tạo object thấp nhất.
+
 ---
 
 ## 5. Cài đặt
@@ -276,6 +285,7 @@ Demo terminal (`scripts/demo.py`) chạy tự động:
 - Checkout cùng object từ 2 site.
 - Checkin tạo conflict branch.
 - Benchmark snapshot vs delta 10 versions.
+- Sinh 3 biểu đồ PNG trong `results/`.
 - Node disconnect + outbox retry.
 
 ---
@@ -322,7 +332,6 @@ Frontend gọi backend qua REST API (`src/api.js`). Backend là source of truth 
 | `POST` | `/benchmark/run`                  | Chạy benchmark 10 versions                              |
 | `POST` | `/rehydrate`                      | Rehydrate (tái dựng) một CAD model từ delta patches     |
 | `GET`  | `/logs`                           | Xem logs hoạt động của Site                          |
-| `GET`  | `/dataset/info`                   | Lấy thông tin về kích thước và schema của dataset     |
 | `GET`  | `/checkouts`                      | Liệt kê danh sách các checkouts đang hoạt động        |
 
 ### Coordinator API (`app/coordinator.py`)
@@ -344,26 +353,26 @@ Kết quả benchmark 10 versions (từ `results/benchmark_results.json`):
 
 | Metric               | Giá trị       |
 | -------------------- | --------------- |
-| Full Snapshot tổng  | 70,797 bytes    |
-| Delta Storage tổng  | 11,841 bytes    |
-| Tiết kiệm          | **83.27%**      |
-| Avg rehydration time | 7.799 ms        |
+| Full Snapshot tổng  | 70,904 bytes    |
+| Delta Storage tổng  | 11,878 bytes    |
+| Tiết kiệm          | **83.25%**      |
+| Avg rehydration time | 15.972 ms       |
 | Integrity (SHA-256)  | ✅ OK           |
 
 Chi tiết theo version:
 
 | Version | Snapshot (bytes) | Delta patch (bytes) | Saving % | Rehydration steps |
 | ------- | ---------------- | ------------------- | -------- | ----------------- |
-| 1       | 6,110            | 0 (base)            | 0%       | 0                 |
-| 2       | 6,110            | 200                 | 96.7%    | 1                 |
-| 3       | 6,110            | 202                 | 96.7%    | 2                 |
-| 4       | 6,110            | 329                 | 94.6%    | 3                 |
-| 5       | 6,120            | 230                 | 96.2%    | 4                 |
-| 6       | 7,853            | 2,102               | 73.2%    | 5                 |
-| 7       | 7,853            | 354                 | 95.5%    | 6                 |
-| 8       | 8,759            | 1,191               | 86.4%    | 7                 |
-| 9       | 7,681            | 265                 | 96.5%    | 8                 |
-| 10      | 7,903            | 865                 | 89.1%    | 9                 |
+| 1       | 6,140            | 0 (base)            | 0%       | 0                 |
+| 2       | 6,140            | 200                 | 96.7%    | 1                 |
+| 3       | 6,140            | 202                 | 96.7%    | 2                 |
+| 4       | 6,152            | 345                 | 94.4%    | 3                 |
+| 5       | 6,152            | 221                 | 96.4%    | 4                 |
+| 6       | 7,878            | 2,095               | 73.4%    | 5                 |
+| 7       | 7,878            | 352                 | 95.5%    | 6                 |
+| 8       | 8,786            | 1,193               | 86.4%    | 7                 |
+| 9       | 7,707            | 265                 | 96.6%    | 8                 |
+| 10      | 7,931            | 865                 | 89.1%    | 9                 |
 
 Trade-off: Delta storage tiết kiệm ~83% dung lượng nhưng rehydration cost tăng tuyến tính O(k) với k = số delta trong chain.
 

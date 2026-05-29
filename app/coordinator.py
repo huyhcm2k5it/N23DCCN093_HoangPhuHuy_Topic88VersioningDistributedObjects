@@ -21,10 +21,17 @@ class CoordinatorMetadataStore:
     def _conn(self):
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         conn.execute("PRAGMA journal_mode=WAL")
+        conn.executescript(self._schema_sql())
+        conn.commit()
         return conn
 
     def _init_schema(self):
-        schema = """
+        with sqlite3.connect(self.db_path, check_same_thread=False) as conn:
+            conn.executescript(self._schema_sql())
+            conn.commit()
+
+    def _schema_sql(self):
+        return """
         CREATE TABLE IF NOT EXISTS oid_registry (
             part_id TEXT PRIMARY KEY,
             oid TEXT NOT NULL UNIQUE,
@@ -75,9 +82,6 @@ class CoordinatorMetadataStore:
             updated_at TEXT
         );
         """
-        with self._conn() as conn:
-            conn.executescript(schema)
-            conn.commit()
 
     def _now(self):
         return datetime.now().isoformat()

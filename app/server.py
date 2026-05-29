@@ -338,21 +338,30 @@ def create_app(site):
     @app.post("/rehydrate")
     def rehydrate_object():
         data = payload()
-        oid = data.get("oid")
+        object_ref = data.get("part_id") or data.get("oid")
         target_version = data.get("target_version")
         branch = data.get("branch", "main")
-        if not oid or target_version is None:
-            return error("Can co 'oid' va 'target_version'.", 400, error="MISSING_REQUIRED_FIELDS")
+        if not object_ref or target_version is None:
+            return error("Can co 'part_id' hoac 'oid' va 'target_version'.", 400, error="MISSING_REQUIRED_FIELDS")
         try:
             target_version = int(target_version)
         except Exception:
             return error("Vui long nhap target_version la so nguyen.", 400, error="INVALID_TARGET_VERSION")
 
-        model, meta = site.delta_store.rehydrate(oid, target_version, branch=branch)
+        part_id = site.delta_store.resolve_part_id(object_ref)
+        meta = {
+            "object_ref": object_ref,
+            "part_id": part_id,
+            "target_version": target_version,
+            "branch": branch,
+            "rehydration_steps": site.delta_store.rehydration_cost(part_id, target_version, branch) if part_id else None,
+            "storage_strategy": "base_plus_delta_chain",
+        }
+        model = site.delta_store.rehydrate(object_ref, target_version, branch=branch)
         if not model:
             return error("Khong tim thay target version.", 404, **meta)
 
-        snapshot_model = site.snapshot_store.get_exact(meta["part_id"], target_version, branch) or site.snapshot_store.get(meta["part_id"], target_version, branch)
+        snapshot_model = site.snapshot_store.get_exact(part_id, target_version, branch) or site.snapshot_store.get(part_id, target_version, branch)
         snapshot_checksum = snapshot_model.checksum() if snapshot_model else None
         rehydrated_checksum = model.checksum()
 

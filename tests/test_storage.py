@@ -100,6 +100,8 @@ class TestStorage(unittest.TestCase):
         self.assertEqual(len(all_checkouts), 1)
         self.assertEqual(all_checkouts[0]["part_id"], "ENG-TEST")
         self.assertEqual(all_checkouts[0]["user"], "user1")
+        self.assertIsInstance(all_checkouts[0]["model"], dict)
+        self.assertEqual(all_checkouts[0]["model"]["part_id"], "ENG-TEST")
 
 if __name__ == '__main__':
     unittest.main()

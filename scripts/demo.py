@@ -4,6 +4,7 @@ from datetime import datetime
 import requests
 
 from scripts.benchmark import run_benchmark
+from scripts.visualize import generate_all_charts
 
 
 SITES = {
@@ -134,12 +135,11 @@ def check_sites_online():
     for site_name, site_url in SITES.items():
         try:
             health = requests.get(f"{site_url}/health", timeout=2).json()
-            dataset = get_json(site_name, "/dataset/info")
-            categories = dataset.get("categories_breakdown", {})
+            fragmentation = get_json(site_name, "/fragmentation")
             print(
                 f"  OK {site_name}: {health['status']} | "
-                f"strategy={health.get('strategy')} | parts={dataset.get('total_parts')} | "
-                f"categories={categories}"
+                f"strategy={health.get('strategy')} | parts={fragmentation.get('local_parts_count')} | "
+                f"fragment={fragmentation.get('predicate')}"
             )
         except Exception:
             print(f"  FAIL {site_name}: OFFLINE. Hay chay 'python main.py --servers' truoc.")
@@ -217,6 +217,7 @@ def run_collaborative_conflict_demo():
 def run_delta_storage_demo():
     print_banner("PHAN TICH: FULL SNAPSHOT VS DELTA STORAGE CHO 10 PHIEN BAN")
     results = run_benchmark(num_versions=10, complexity=5)
+    generate_all_charts()
     print("Tom tat metric bat buoc:")
     print(f"   full_snapshot_bytes={results['full_snapshot_bytes']}")
     print(f"   delta_storage_bytes={results['delta_storage_bytes']}")

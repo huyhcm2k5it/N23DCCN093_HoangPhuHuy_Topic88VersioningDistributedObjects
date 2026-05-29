@@ -40,11 +40,37 @@ def _get_conn(site_id):
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     with _init_lock:
+        _reset_old_schema(conn)
+        conn.executescript(_SCHEMA_SQL)
+        _migrate_replication_schema(conn)
+        conn.commit()
         if site_id not in _initialized_dbs:
-            conn.executescript(_SCHEMA_SQL)
-            conn.commit()
             _initialized_dbs.add(site_id)
     return conn
+
+
+def _reset_old_schema(conn):
+    for table in ("snapshots", "deltas"):
+        rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+        if rows and "branch" not in [row[1] for row in rows]:
+            conn.executescript("DROP TABLE IF EXISTS snapshots; DROP TABLE IF EXISTS bases; DROP TABLE IF EXISTS deltas;")
+            break
+
+
+def _add_column(conn, table, column_def):
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    if rows and column_def.split()[0] not in [row[1] for row in rows]:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column_def}")
+
+
+def _migrate_replication_schema(conn):
+    for table, column in (
+        ("replication_outbox", "next_retry_at TEXT"),
+        ("replication_inbox", "request_hash TEXT DEFAULT ''"),
+        ("replication_inbox", "stored_response_json TEXT"),
+        ("replication_inbox", "stored_response_hash TEXT"),
+    ):
+        _add_column(conn, table, column)
 
 
 def _json_size(value):
@@ -194,7 +220,14 @@ class DeltaStore:
         base = self._base(part_id)
         return 0 if not base or version <= base.version else sum(1 for delta in self._chain(part_id, branch) if base.version < delta.to_version <= version)
 
-    def rehydrate(self, part_id, target_version, branch="main"):
+    def resolve_part_id(self, object_ref):
+        row = _one(self.site_id, "SELECT part_id FROM bases WHERE part_id=? OR oid=?", (object_ref, object_ref))
+        return row["part_id"] if row else None
+
+    def rehydrate(self, object_ref, target_version, branch="main"):
+        part_id = self.resolve_part_id(object_ref)
+        if not part_id:
+            return None
         return self.get(part_id, target_version, branch)
 
 
@@ -220,7 +253,7 @@ class CheckoutStore:
                 "user": row["user"],
                 "base_version": row["base_version"],
                 "checkout_time": row["checkout_time"],
-                "model": CADModel.from_dict(json.loads(row["model_json"]))
+                "model": json.loads(row["model_json"])
             }
             for row in rows
         ]
