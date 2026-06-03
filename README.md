@@ -5,7 +5,7 @@
 Hệ thống mô phỏng quản lý phiên bản cho các đối tượng CAD phân tán. Nhiều site có thể checkout cùng một object, hệ thống tự động phát hiện conflict khi checkin từ stale base và giải quyết bằng branching. Hỗ trợ so sánh Full Snapshot Storage với Delta Storage, benchmark 10 versions và demo lỗi Node Disconnect bằng Durable Outbox Retry.
 
 **Môn học:** Cơ sở dữ liệu phân tán
-**Cơ sở lý thuyết:** Ozsu & Valduriez, *Principles of Distributed Database Systems*, 4th Edition, Chapter 15.
+**Cơ sở lý thuyết:** Ozsu & Valduriez, *Principles of Distributed Database Systems*, 4th Edition
 
 ---
 
@@ -309,30 +309,30 @@ Frontend gọi backend qua REST API (`src/api.js`). Backend là source of truth 
 
 ### Site API (`app/server.py`)
 
-| Method   | Endpoint                            | Mục đích                                              |
-| -------- | ----------------------------------- | -------------------------------------------------------- |
-| `GET`  | `/health`                         | Trạng thái site, strategy, network, outbox             |
-| `GET`  | `/models`                         | Liệt kê latest model của tất cả part_ids            |
-| `POST` | `/models`                         | Tạo model mới hoặc import model từ site khác        |
-| `GET`  | `/models/<part_id>`               | Lấy latest hoặc version cụ thể (`?version=N`)      |
-| `POST` | `/models/<part_id>/checkout`      | Checkout object (ghi `base_version` vào DB)           |
-| `POST` | `/models/<part_id>/checkin`       | Checkin object (detect conflict, tạo branch nếu stale) |
-| `GET`  | `/models/<part_id>/versions`      | Tất cả versions và branches                           |
-| `POST` | `/replicate`                      | Replicate object sang site khác qua outbox              |
-| `POST` | `/replication/incoming`           | Nhận replication (idempotent theo `op_id`)            |
-| `GET`  | `/replication/outbox`             | Xem outbox (filter `?status=`, `?target_site=`)      |
-| `GET`  | `/replication/inbox`              | Xem inbox (danh sách replication nhận được)            |
-| `POST` | `/replication/replay`             | Replay pending outbox operations                         |
-| `POST` | `/network/disconnect`             | Giả lập site disconnect (chặn inter-site request)     |
-| `POST` | `/network/reconnect`              | Reconnect + auto-replay outbox                           |
-| `GET`  | `/network/status`                 | Trạng thái network                                     |
-| `GET`  | `/storage/compare`                | So sánh snapshot vs delta bytes                         |
-| `GET`  | `/fragmentation`                  | Thông tin phân mảnh tại site                         |
-| `GET`  | `/benchmark`                      | Đọc benchmark results JSON                             |
-| `POST` | `/benchmark/run`                  | Chạy benchmark 10 versions                              |
-| `POST` | `/rehydrate`                      | Rehydrate (tái dựng) một CAD model từ delta patches     |
-| `GET`  | `/logs`                           | Xem logs hoạt động của Site                          |
-| `GET`  | `/checkouts`                      | Liệt kê danh sách các checkouts đang hoạt động        |
+| Method   | Endpoint                       | Mục đích                                              |
+| -------- | ------------------------------ | -------------------------------------------------------- |
+| `GET`  | `/health`                    | Trạng thái site, strategy, network, outbox             |
+| `GET`  | `/models`                    | Liệt kê latest model của tất cả part_ids            |
+| `POST` | `/models`                    | Tạo model mới hoặc import model từ site khác        |
+| `GET`  | `/models/<part_id>`          | Lấy latest hoặc version cụ thể (`?version=N`)      |
+| `POST` | `/models/<part_id>/checkout` | Checkout object (ghi `base_version` vào DB)           |
+| `POST` | `/models/<part_id>/checkin`  | Checkin object (detect conflict, tạo branch nếu stale) |
+| `GET`  | `/models/<part_id>/versions` | Tất cả versions và branches                           |
+| `POST` | `/replicate`                 | Replicate object sang site khác qua outbox              |
+| `POST` | `/replication/incoming`      | Nhận replication (idempotent theo `op_id`)            |
+| `GET`  | `/replication/outbox`        | Xem outbox (filter `?status=`, `?target_site=`)      |
+| `GET`  | `/replication/inbox`         | Xem inbox (danh sách replication nhận được)         |
+| `POST` | `/replication/replay`        | Replay pending outbox operations                         |
+| `POST` | `/network/disconnect`        | Giả lập site disconnect (chặn inter-site request)     |
+| `POST` | `/network/reconnect`         | Reconnect + auto-replay outbox                           |
+| `GET`  | `/network/status`            | Trạng thái network                                     |
+| `GET`  | `/storage/compare`           | So sánh snapshot vs delta bytes                         |
+| `GET`  | `/fragmentation`             | Thông tin phân mảnh tại site                         |
+| `GET`  | `/benchmark`                 | Đọc benchmark results JSON                             |
+| `POST` | `/benchmark/run`             | Chạy benchmark 10 versions                              |
+| `POST` | `/rehydrate`                 | Rehydrate (tái dựng) một CAD model từ delta patches  |
+| `GET`  | `/logs`                      | Xem logs hoạt động của Site                          |
+| `GET`  | `/checkouts`                 | Liệt kê danh sách các checkouts đang hoạt động   |
 
 ### Coordinator API (`app/coordinator.py`)
 
@@ -351,13 +351,13 @@ Frontend gọi backend qua REST API (`src/api.js`). Backend là source of truth 
 
 Kết quả benchmark 10 versions (từ `results/benchmark_results.json`):
 
-| Metric               | Giá trị       |
-| -------------------- | --------------- |
-| Full Snapshot tổng  | 70,904 bytes    |
-| Delta Storage tổng  | 11,878 bytes    |
-| Tiết kiệm          | **83.25%**      |
-| Avg rehydration time | 15.972 ms       |
-| Integrity (SHA-256)  | ✅ OK           |
+| Metric               | Giá trị        |
+| -------------------- | ---------------- |
+| Full Snapshot tổng  | 70,904 bytes     |
+| Delta Storage tổng  | 11,878 bytes     |
+| Tiết kiệm          | **83.25%** |
+| Avg rehydration time | 15.972 ms        |
+| Integrity (SHA-256)  | ✅ OK            |
 
 Chi tiết theo version:
 

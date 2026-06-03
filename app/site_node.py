@@ -411,6 +411,67 @@ class SiteNode:
             "savings_percent": round((1 - delta / max(snap, 1)) * 100, 2)
         }
 
+    def apply_incoming_delta(
+        self,
+        delta,
+        source_site=None,
+        expected_oid=None,
+        expected_base_checksum=None,
+        expected_target_checksum=None,
+        branch=None,
+    ):
+        """Ap dung delta den tu site khac len base da co tai site nay.
+        Dung cho cross-site delta replication de tiet kiem disk/bandwidth.
+        Raise ValueError neu target thieu base hoac metadata khong khop.
+        """
+        branch = branch or delta.branch or "main"
+        base = self.snapshot_store.get(delta.part_id, delta.from_version, branch)
+        if not base and branch != "main":
+            base = self.snapshot_store.get(delta.part_id, delta.from_version, "main")
+        if not base:
+            self._log(
+                "DELTA_IMPORT_FAIL", delta.part_id,
+                f"Khong co base v{delta.from_version} de apply delta tu {source_site}"
+            )
+            raise ValueError("MISSING_BASE_FOR_DELTA")
+        if expected_oid and base.oid != expected_oid:
+            self._log(
+                "DELTA_IMPORT_FAIL", delta.part_id,
+                f"OID khong khop khi apply delta tu {source_site}"
+            )
+            raise ValueError("OID_MISMATCH_FOR_DELTA")
+        if expected_base_checksum and base.checksum() != expected_base_checksum:
+            self._log(
+                "DELTA_IMPORT_FAIL", delta.part_id,
+                f"Base checksum khong khop khi apply delta tu {source_site}"
+            )
+            raise ValueError("BASE_CHECKSUM_MISMATCH")
+
+        new_model = delta.apply(base)
+        new_model.modified_at = datetime.now().isoformat()
+        new_model.branch = branch
+        if expected_target_checksum and new_model.checksum() != expected_target_checksum:
+            self._log(
+                "DELTA_IMPORT_FAIL", delta.part_id,
+                f"Target checksum khong khop sau khi apply delta tu {source_site}"
+            )
+            raise ValueError("TARGET_CHECKSUM_MISMATCH")
+
+        delta.branch = branch
+        # Snapshot duoc giu lam checkpoint/UI; delta la payload chuyen giua site.
+        self.snapshot_store.save(new_model)
+        self.delta_store.save_delta(delta)
+
+        self.notify_update_head(
+            new_model,
+            parent_version=delta.from_version,
+            parent_branch=base.branch or "main"
+        )
+        self._log(
+            "DELTA_IMPORT", delta.part_id,
+            f"Apply cross-site delta v{delta.from_version}->v{delta.to_version} tu {source_site or 'unknown'}"
+        )
+        return new_model
 
 
     def _log(self, action, part_id, msg):

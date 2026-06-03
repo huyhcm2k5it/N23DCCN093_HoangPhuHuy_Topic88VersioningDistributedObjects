@@ -24,3 +24,6 @@ results/*.json
 # Temp files
 temp_*.txt
 *.db
+
+# Tests
+tests/

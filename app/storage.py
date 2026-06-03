@@ -3,6 +3,7 @@ import json
 import os
 import sqlite3
 import threading
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 
 from .models import CADModel, Delta, Geometry
@@ -49,6 +50,15 @@ def _get_conn(site_id):
     return conn
 
 
+@contextmanager
+def _conn_scope(site_id):
+    conn = _get_conn(site_id)
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
 def _reset_old_schema(conn):
     for table in ("snapshots", "deltas"):
         rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
@@ -78,17 +88,17 @@ def _json_size(value):
 
 
 def _one(site_id, sql, params=()):
-    with _get_conn(site_id) as conn:
+    with _conn_scope(site_id) as conn:
         return conn.execute(sql, params).fetchone()
 
 
 def _all(site_id, sql, params=()):
-    with _get_conn(site_id) as conn:
+    with _conn_scope(site_id) as conn:
         return conn.execute(sql, params).fetchall()
 
 
 def _write(site_id, sql, params=()):
-    with _get_conn(site_id) as conn:
+    with _conn_scope(site_id) as conn:
         conn.execute(sql, params)
         conn.commit()
 
@@ -280,11 +290,55 @@ class ReplicationOutboxStore:
         )
         return self.get(op_id)
 
+    def enqueue_delta(self, target_site, base_model, new_model):
+        """Enqueue chi delta (khong phai full snapshot) vao outbox.
+        Su dung khi target_site da co base version cua object.
+        """
+        from .models import Delta, DeltaSchema
+        delta = Delta.compute(base_model, new_model, self.site_id)
+        delta_payload = DeltaSchema().dump(delta)
+        op_id, now = self.make_op_id(target_site, new_model), self._now()
+        # Envelope gom metadata de target validate dung distributed object.
+        payload = json.dumps(
+            {
+                "__type": "delta",
+                "oid": new_model.oid,
+                "part_id": new_model.part_id,
+                "branch": new_model.branch or "main",
+                "from_version": base_model.version,
+                "to_version": new_model.version,
+                "base_checksum": base_model.checksum(),
+                "target_checksum": new_model.checksum(),
+                "delta": delta_payload,
+            },
+            ensure_ascii=False
+        )
+        _write(
+            self.site_id,
+            """INSERT OR REPLACE INTO replication_outbox
+               (op_id, source_site, target_site, part_id, oid, version, branch,
+                payload_json, status, attempt_count, last_error, next_retry_at,
+                created_at, updated_at, acked_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', 0, NULL, NULL,
+                       COALESCE((SELECT created_at FROM replication_outbox WHERE op_id=?), ?), ?, NULL)""",
+            (op_id, self.site_id, target_site, new_model.part_id, new_model.oid,
+             new_model.version, new_model.branch or "main", payload,
+             op_id, now, now),
+        )
+        return self.get(op_id)
+
     def _row(self, row):
         if not row:
             return None
         data = dict(row)
-        data["payload"] = json.loads(data.pop("payload_json"))
+        raw = json.loads(data.pop("payload_json"))
+        # Phan biet delta payload vs full snapshot payload
+        if isinstance(raw, dict) and raw.get("__type") == "delta":
+            data["payload"] = None
+            data["delta"] = raw
+        else:
+            data["payload"] = raw
+            data["delta"] = None
         return data
 
     def get(self, op_id):
@@ -353,6 +407,18 @@ class ReplicationInboxStore:
         )
         return self.get(op_id), True, None
 
+    def claim_or_get_payload(self, op_id, request_payload, source_site, part_id, oid=None, version=None, branch="main", checksum=None):
+        """Claim replication op for non-CADModel payloads such as delta envelopes."""
+        existing = self.get(op_id)
+        if existing:
+            return existing, False, None
+        _write(
+            self.site_id,
+            "INSERT INTO replication_inbox (op_id, request_hash, source_site, part_id, oid, version, branch, checksum, status, processed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PROCESSING', ?)",
+            (op_id, self._hash(request_payload), source_site, part_id, oid, version, branch or "main", checksum, datetime.now().isoformat()),
+        )
+        return self.get(op_id), True, None
+
     def store_response(self, op_id, response_payload, status="PROCESSED"):
         _write(
             self.site_id,
@@ -374,7 +440,7 @@ class ReplicationInboxStore:
 class TransactionManager:
     @staticmethod
     def commit_checkin(site_id, model, delta, checkout_part_id, checkout_user):
-        with _get_conn(site_id) as conn:
+        with _conn_scope(site_id) as conn:
             conn.execute(
                 """INSERT OR REPLACE INTO snapshots (part_id, version, branch, oid, site_origin, created_at, modified_at, locked_by, geometry)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",

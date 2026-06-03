@@ -9,12 +9,13 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from marshmallow import ValidationError
 
-from .models import CADModelSchema, GeometrySchema
+from .models import CADModelSchema, GeometrySchema, DeltaSchema
 
 
 _cad_schema = CADModelSchema()
 _cad_many = CADModelSchema(many=True)
 _geo_schema = GeometrySchema()
+_delta_schema = DeltaSchema()
 _SITE_PORT_MAP = {"Site-A": 5001, "Site-B": 5002, "Site-C": 5003}
 
 
@@ -102,15 +103,26 @@ def create_app(site):
             return {"delivered": False, "message": "Target site khong hop le.", "outbox_entry": failed}
 
         try:
-            response = requests.post(
-                f"http://127.0.0.1:{port}/replication/incoming",
-                json={
+            # Phan biet delta payload vs full snapshot de gui dung key
+            if op.get("delta") is not None:
+                post_body = {
                     "op_id": op["op_id"],
                     "source_site": site.site_id,
                     "target_site": op["target_site"],
-                    "model": op["payload"],
+                    "delta": op["delta"],          # Cross-site delta transfer
                     "failure_mode": failure_mode,
-                },
+                }
+            else:
+                post_body = {
+                    "op_id": op["op_id"],
+                    "source_site": site.site_id,
+                    "target_site": op["target_site"],
+                    "model": op["payload"],         # Full snapshot (lan dau tien)
+                    "failure_mode": failure_mode,
+                }
+            response = requests.post(
+                f"http://127.0.0.1:{port}/replication/incoming",
+                json=post_body,
                 headers={"X-Replication-Source": site.site_id, "X-Replication-Op-Id": op["op_id"]},
                 timeout=2,
             )
@@ -169,6 +181,23 @@ def create_app(site):
     @app.get("/models/<part_id>/versions")
     def get_versions(part_id):
         return jsonify(_cad_many.dump(site.snapshot_store.get_all_versions(part_id)))
+
+    @app.get("/models/<part_id>/version-info")
+    def model_version_info(part_id):
+        """Endpoint nhe cho site khac hoi truoc khi replicate:
+        'Ban dang co version nao cua object nay?'
+        Dung trong giao thuc 2-phase delta replication.
+        """
+        model = site.snapshot_store.get_latest(part_id)
+        if not model:
+            return jsonify({"exists": False}), 404
+        return jsonify({
+            "exists": True,
+            "part_id": part_id,
+            "version": model.version,
+            "oid": model.oid,
+            "branch": model.branch,
+        })
 
     @app.post("/models/<part_id>/checkout")
     def checkout(part_id):
@@ -241,8 +270,38 @@ def create_app(site):
         if not model:
             return error("Khong tim thay model.", 404)
 
-        op = site.replication_outbox.enqueue_model(target_site, model)
+        # ── 2-PHASE DELTA REPLICATION ──
+        # Hoi target site dang co version nao cua object nay
+        port = _SITE_PORT_MAP.get(target_site)
+        target_info = None
+        try:
+            resp = requests.get(
+                f"http://127.0.0.1:{port}/models/{part_id}/version-info",
+                timeout=2
+            )
+            if resp.status_code == 200:
+                target_info = resp.json()
+        except Exception:
+            pass  # Neu khong hoi duoc → fallback gui full snapshot
+
         failure_mode = data.get("failure_mode") or ("after_commit_ack_lost" if data.get("simulate_timeout_after_commit") else None)
+
+        target_version = target_info.get("version") if target_info else None
+        target_oid = target_info.get("oid") if target_info else None
+        if target_version is not None and target_oid == model.oid and target_version < model.version:
+            # Target da co base → chi gui DELTA (tiet kiem disk & bandwidth)
+            base = site.snapshot_store.get(part_id, target_version, model.branch or "main")
+            if base:
+                op = site.replication_outbox.enqueue_delta(target_site, base, model)
+                replication_mode = "delta"
+            else:
+                op = site.replication_outbox.enqueue_model(target_site, model)
+                replication_mode = "full_snapshot"
+        else:
+            # Target chua co gi, hoac da cung version → gui FULL SNAPSHOT
+            op = site.replication_outbox.enqueue_model(target_site, model)
+            replication_mode = "full_snapshot"
+
         result = deliver(op, failure_mode=failure_mode)
         return jsonify({
             "success": result["delivered"],
@@ -250,6 +309,7 @@ def create_app(site):
             "message": result["message"],
             "part_id": part_id,
             "target_site": target_site,
+            "replication_mode": replication_mode,
             "op_id": op["op_id"],
             "outbox_entry": result["outbox_entry"],
             "delivery": result,
@@ -260,18 +320,121 @@ def create_app(site):
         data = payload()
         source_site = data.get("source_site") or request.headers.get("X-Replication-Source")
         op_id = data.get("op_id") or request.headers.get("X-Replication-Op-Id")
-        if not source_site or not op_id or not data.get("model"):
-            return error("Replication can source_site, op_id va model.", 400, error="MISSING_REPLICATION_METADATA")
+        failure_mode = data.get("failure_mode")
+
+        if not source_site or not op_id:
+            return error("Replication can source_site va op_id.", 400, error="MISSING_REPLICATION_METADATA")
+        if not data.get("model") and not data.get("delta"):
+            return error("Replication can truong 'model' hoac 'delta'.", 400, error="MISSING_REPLICATION_METADATA")
         if source_site not in _SITE_PORT_MAP or source_site == site.site_id:
             return error("source_site khong hop le.", 400, error="INVALID_SOURCE_SITE")
+        if failure_mode not in (None, "", "before_commit", "after_commit_ack_lost"):
+            return error("failure_mode khong hop le.", 400, error="INVALID_FAILURE_MODE")
 
+        # ── NHANH DELTA: Nhan bản vá vi sai từ site khác ──
+        if data.get("delta"):
+            delta_envelope = data["delta"]
+            if not isinstance(delta_envelope, dict):
+                return error("Delta payload phai la object JSON.", 400, error="INVALID_DELTA_PAYLOAD")
+            if delta_envelope.get("__type") == "delta":
+                delta_data = delta_envelope.get("delta")
+                expected_oid = delta_envelope.get("oid")
+                expected_base_checksum = delta_envelope.get("base_checksum")
+                expected_target_checksum = delta_envelope.get("target_checksum")
+                branch = delta_envelope.get("branch") or "main"
+            else:
+                # Backward-compatible raw Delta payload.
+                delta_data = delta_envelope
+                expected_oid = None
+                expected_base_checksum = None
+                expected_target_checksum = None
+                branch = delta_envelope.get("branch", "main")
+
+            try:
+                incoming_delta = _delta_schema.load(delta_data)
+            except ValidationError as exc:
+                return error("Delta payload khong dung schema.", 400, error="SCHEMA_VALIDATION_ERROR", details=exc.messages)
+
+            for field, value in (
+                ("part_id", incoming_delta.part_id),
+                ("from_version", incoming_delta.from_version),
+                ("to_version", incoming_delta.to_version),
+            ):
+                if field in delta_envelope and delta_envelope[field] != value:
+                    return error("Delta envelope khong khop voi delta body.", 400, error="DELTA_ENVELOPE_MISMATCH", field=field)
+            incoming_delta.branch = branch
+
+            idem_payload = {"source_site": source_site, "target_site": site.site_id, "delta": delta_envelope}
+            # Dung op_id de check idempotency
+            existing_inbox = site.replication_inbox.get(op_id)
+            if existing_inbox:
+                if existing_inbox["request_hash"] != request_hash(idem_payload):
+                    return error("Cung op_id nhung delta payload khac.", 409, error="IDEMPOTENCY_HASH_CONFLICT")
+                if existing_inbox["stored_response_json"] is not None:
+                    stored = dict(existing_inbox["stored_response_json"])
+                    stored["idempotent_duplicate"] = True
+                    return jsonify(stored)
+                return error("Operation dang xu ly, vui long retry.", 409, error="IDEMPOTENCY_IN_PROGRESS")
+
+            site.replication_inbox.claim_or_get_payload(
+                op_id,
+                idem_payload,
+                source_site,
+                part_id=incoming_delta.part_id,
+                oid=expected_oid,
+                version=incoming_delta.to_version,
+                branch=branch,
+                checksum=expected_target_checksum,
+            )
+
+            if failure_mode == "before_commit":
+                site.replication_inbox.delete(op_id)
+                return error("SIMULATED_BEFORE_COMMIT_FAILURE", 503, op_id=op_id)
+
+            try:
+                imported = site.apply_incoming_delta(
+                    incoming_delta,
+                    source_site=source_site,
+                    expected_oid=expected_oid,
+                    expected_base_checksum=expected_base_checksum,
+                    expected_target_checksum=expected_target_checksum,
+                    branch=branch,
+                )
+            except ValueError as exc:
+                site.replication_inbox.delete(op_id)
+                error_code = str(exc)
+                status = 409 if error_code == "MISSING_BASE_FOR_DELTA" else 422
+                return error(
+                    "Khong apply duoc delta replication.",
+                    status,
+                    error=error_code,
+                    part_id=incoming_delta.part_id,
+                    required_base_version=incoming_delta.from_version,
+                )
+
+            body = {
+                "success": True,
+                "message": "Delta replication imported (cross-site delta transfer)",
+                "op_id": op_id,
+                "replication_mode": "delta",
+                "stored": {
+                    "part_id": imported.part_id,
+                    "oid": imported.oid,
+                    "version": imported.version,
+                    "branch": imported.branch,
+                },
+                "checksum_match": expected_target_checksum is None or imported.checksum() == expected_target_checksum,
+            }
+            site.replication_inbox.store_response(op_id, body)
+            if failure_mode == "after_commit_ack_lost":
+                return error("SIMULATED_ACK_LOSS_AFTER_COMMIT", 504, op_id=op_id)
+            return jsonify(body), 201
+
+        # ── NHANH FULL SNAPSHOT: Logic goc khong thay doi ──
         try:
             incoming = _cad_schema.load(data["model"])
         except ValidationError as exc:
             return error("Model replication khong dung schema.", 400, error="SCHEMA_VALIDATION_ERROR", details=exc.messages)
-        failure_mode = data.get("failure_mode")
-        if failure_mode not in (None, "", "before_commit", "after_commit_ack_lost"):
-            return error("failure_mode khong hop le.", 400, error="INVALID_FAILURE_MODE")
 
         idem_payload = {"source_site": source_site, "target_site": site.site_id, "model": incoming.to_dict()}
         inbox_entry, claimed, _ = site.replication_inbox.claim_or_get(op_id, idem_payload, source_site, incoming)
@@ -293,6 +456,7 @@ def create_app(site):
             "success": True,
             "message": "Replication duplicate da ACK idempotent" if duplicate else "Replication imported",
             "op_id": op_id,
+            "replication_mode": "full_snapshot",
             "idempotent_duplicate": duplicate,
             "stored": {"part_id": imported.part_id, "oid": imported.oid, "version": imported.version, "branch": imported.branch},
         }
